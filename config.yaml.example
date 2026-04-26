@@ -1,0 +1,13 @@
+threexui:
+  panel-port: 2053
+  panel-path: ""
+  username: ""
+  password: ""
+  insecure-skip-verify: false
+  clients-bytes-rows: 0
+  timeout: 120
+
+obfsexporter:
+  scrape-timeout: 30
+  address: localhost
+  port: "9100"

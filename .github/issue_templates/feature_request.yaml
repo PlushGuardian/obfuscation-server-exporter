@@ -1,0 +1,22 @@
+name: Feature Request
+description: Suggest a new capability
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Motivation
+      description: Why do you need this? What problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: What should the feature look like? (CLI flags, API, config, etc.)
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or alternative approaches you've tried?
+    validations:
+      required: false

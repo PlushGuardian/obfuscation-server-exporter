@@ -1,12 +1,39 @@
-# IDE settings
-.idea
-
-# Build output
+# ── Binaries & build artifacts ─────────────────────────────
+/obfs-exporter
+/obfs-exporter.exe
+/obfs-exporter.test
 dist/
+*.test
+*.out
 
-# Local exporter files
-marzban-exporter
-x-ui-exporter
+# ── Go dependency & build cache ───────────────────────────
+/vendor/
+go.sum
 
-# Local config
+/go.work
+/go.work.sum
+
+# ── IDE & editors ─────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store        # macOS
+Thumbs.db        # Windows
+
+# ── Environment & secrets ─────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+
+# ── Logs & runtime ────────────────────────────────────────
+*.log
+/tmp/
+
+# ── Personal files with secrets ───────────────────────────
+deploy.sh
 config.yaml

@@ -1,0 +1,17 @@
+[Unit]
+Description=Obfuscation Server Metrics Exporter for Prometheus
+Documentation=https://github.com/PlushGuardian/obfuscation-server-exporter
+After=network.target
+
+[Service]
+User=obfs-exporter
+Group=obfs-exporter
+Type=simple
+ExecStart=/usr/local/bin/obfs-exporter --config-file=/etc/obfs-exporter/config.yaml
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
