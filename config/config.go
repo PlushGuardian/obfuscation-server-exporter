@@ -1,5 +1,10 @@
 package config
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Config struct {
 	OBFSExporter OBFSExporterConfig `mapstructure:"obfsexporter"`
 	ThreeXUI     ThreeXUIConfig     `mapstructure:"threexui"`
@@ -19,4 +24,8 @@ type ThreeXUIConfig struct {
 	InsecureSkipVerify bool   `mapstructure:"insecure_skip-verify"`
 	ClientsBytesRows   int    `mapstructure:"clients-bytes-rows"`
 	Timeout            int    `mapstructure:"timeout"` // seconds
+}
+
+func (c ThreeXUIConfig) PanelURL() string {
+	return fmt.Sprintf("http://%s:%s/%s", "localhost", c.PanelPort, strings.Trim(c.PanelPath, "/"))
 }

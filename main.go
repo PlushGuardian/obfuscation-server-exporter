@@ -75,15 +75,15 @@ func main() {
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
 
 	// ---------- 9. Build collectors from config ----------
-	panelURL := "http://localhost:" + cfg.ThreeXUI.PanelPort + "/" + strings.Trim(cfg.ThreeXUI.PanelPath, "/")
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(threexui.NewCollector(threexui.Config{
-		BaseURL:            panelURL,
+	reg.MustRegister(threexui.NewCollector(config.ThreeXUIConfig{
+		PanelPort:          cfg.ThreeXUI.PanelPort,
+		PanelPath:          cfg.ThreeXUI.PanelPath,
 		Username:           cfg.ThreeXUI.Username,
 		Password:           cfg.ThreeXUI.Password,
 		InsecureSkipVerify: cfg.ThreeXUI.InsecureSkipVerify,
 		ClientsBytesRows:   cfg.ThreeXUI.ClientsBytesRows,
-		Timeout:            time.Duration(cfg.ThreeXUI.Timeout) * time.Second,
+		Timeout:            cfg.ThreeXUI.Timeout,
 	}, threeXUILogger))
 
 	// ---------- 10. HTTP handler ----------

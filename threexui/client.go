@@ -11,10 +11,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 )
 
 type threeXUIClient struct {
-	config     Config
+	config     config.ThreeXUIConfig
 	httpClient *http.Client
 	cookieMu   sync.Mutex
 	cookie     *http.Cookie
@@ -22,9 +24,9 @@ type threeXUIClient struct {
 	logger     *log.Logger
 }
 
-func newClient(cfg Config, logger *log.Logger) *threeXUIClient {
+func newClient(cfg config.ThreeXUIConfig, logger *log.Logger) *threeXUIClient {
 	if cfg.Timeout == 0 {
-		cfg.Timeout = 15 * time.Second
+		cfg.Timeout = 15
 	}
 	return &threeXUIClient{
 		config: cfg,
@@ -38,7 +40,7 @@ func newClient(cfg Config, logger *log.Logger) *threeXUIClient {
 				MaxIdleConnsPerHost: 5,
 				IdleConnTimeout:     90 * time.Second,
 			},
-			Timeout: cfg.Timeout,
+			Timeout: time.Duration(cfg.Timeout) * time.Second,
 		},
 	}
 }
@@ -56,7 +58,7 @@ func (c *threeXUIClient) getAuthToken() (*http.Cookie, error) {
 		"password": {c.config.Password},
 	}
 	req, err := http.NewRequest(http.MethodPost,
-		c.config.BaseURL+"/login",
+		c.config.PanelURL()+"/login",
 		strings.NewReader(data.Encode()))
 	if err != nil {
 		c.logger.Printf("3x-ui: create login request failed: %v", err)
@@ -102,7 +104,7 @@ func (c *threeXUIClient) getAuthToken() (*http.Cookie, error) {
 }
 
 func (c *threeXUIClient) do(method, path string, cookie *http.Cookie) ([]byte, error) {
-	req, err := http.NewRequest(method, c.config.BaseURL+path, nil)
+	req, err := http.NewRequest(method, c.config.PanelURL()+path, nil)
 	if err != nil {
 		c.logger.Printf("3x-ui: create request %s %s failed: %v", method, path, err)
 		return nil, err

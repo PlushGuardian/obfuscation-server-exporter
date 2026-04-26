@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -26,7 +27,7 @@ type ThreeXUI struct {
 	panelUptimeDesc  *prometheus.Desc
 }
 
-func NewCollector(cfg Config, logger *log.Logger) *ThreeXUI {
+func NewCollector(cfg config.ThreeXUIConfig, logger *log.Logger) *ThreeXUI {
 	cli := newClient(cfg, logger)
 	return &ThreeXUI{
 		client: cli,
