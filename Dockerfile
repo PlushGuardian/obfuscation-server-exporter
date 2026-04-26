@@ -23,18 +23,18 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -ldflags="-w -s -X main.version=${GIT_TAG} -X main.commit=${GIT_COMMIT}" \
     -trimpath \
-    -o /usr/bin/x-ui-exporter . && \
+    -o /usr/bin/obfs-exporter . && \
     go clean -modcache
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
-LABEL org.opencontainers.image.source=https://github.com/hteppl/x-ui-exporter
+LABEL org.opencontainers.image.source=https://github.com/hteppl/obfs-exporter
 
 USER nonroot:nonroot
 
 WORKDIR /
-COPY --from=builder --chown=nonroot:nonroot /usr/bin/x-ui-exporter /x-ui-exporter
+COPY --from=builder --chown=nonroot:nonroot /usr/bin/obfs-exporter /obfs-exporter
 
 ENV PATH="/:${PATH}"
 
-ENTRYPOINT ["/x-ui-exporter"]
+ENTRYPOINT ["/osm-exporter"]

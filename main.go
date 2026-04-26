@@ -1,108 +1,98 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
-	"x-ui-exporter/api"
-	"x-ui-exporter/config"
-	"x-ui-exporter/metrics"
 
-	"github.com/go-co-op/gocron"
+	"github.com/PlushGuardian/obfuscation-server-exporter/config"
+	"github.com/PlushGuardian/obfuscation-server-exporter/threexui"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
-
-var (
-	version = "unknown"
-	commit  = "unknown"
-)
-
-func init() { //
-	prometheus.MustRegister(
-		// User-related metrics
-		metrics.OnlineUsersCount,
-		// Client-related metrics
-		metrics.InboundUp,
-		metrics.InboundDown,
-		metrics.ClientUp,
-		metrics.ClientDown,
-		// System-related metrics
-		metrics.XrayVersion,
-		metrics.PanelThreads,
-		metrics.PanelMemory,
-		metrics.PanelUptime,
-	)
-}
-
-func BasicAuthMiddleware(username, password string, protectedMetrics bool) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if protectedMetrics {
-				user, pass, ok := r.BasicAuth()
-				if !ok || user != username || pass != password {
-					w.Header().Set("WWW-Authenticate", `Basic realm="metrics"`)
-					http.Error(w, "Unauthorized.", http.StatusUnauthorized)
-					return
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
 
 func main() {
-	cliConfig, err := config.Parse(version, commit)
+	file, err := os.OpenFile("/var/log/obfuscation-server-exporter.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer file.Close()
+	// ---------- 1. CLI flags (pflag) ----------
+	pflag.String("config-file", "", "Path to YAML configuration file")
+	pflag.String("metrics-ip", "", "IP to listen on")
+	pflag.String("metrics-port", "", "Port to listen on")
+	pflag.Int("update-interval", 0, "Scrape interval in seconds")
+	pflag.Int("clients-bytes-rows", 0, "Top N rows for client bytes")
+	pflag.String("panel-port", "", "3X‑UI panel port")
+	pflag.String("panel-path", "", "3X‑UI panel path")
+	pflag.String("panel-base-url", "", "3X‑UI base URL")
+	pflag.String("panel-username", "", "3X‑UI username")
+	pflag.String("panel-password", "", "3X‑UI password")
+	pflag.Bool("insecure-skip-verify", false, "Skip TLS verification")
+	pflag.Parse()
 
-	fmt.Println("3X-UI Exporter (https://github.com/hteppl/3x-ui-exporter/)", version)
+	// ---------- 2. Bind pflags to Viper ----------
+	viper.BindPFlags(pflag.CommandLine)
 
-	s := gocron.NewScheduler(time.Local)
-	defer s.Stop()
+	// ---------- 3. Environment variables ----------
+	// VIper automatically binds env vars: e.g. METRICS_IP -> metrics-ip
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
 
-	client := api.NewAPIClient(api.APIConfig{
-		BaseURL:            cliConfig.BaseURL,
-		ApiUsername:        cliConfig.ApiUsername,
-		ApiPassword:        cliConfig.ApiPassword,
-		InsecureSkipVerify: cliConfig.InsecureSkipVerify,
-		ClientsBytesRows:   cliConfig.ClientsBytesRows,
-	})
-
-	_, err = s.Every(cliConfig.UpdateInterval).Seconds().Do(func() {
-		token, err := client.GetAuthToken()
-		if err != nil {
-			log.Printf("get auth token: %v", err)
-			return
+	// ---------- 4. Config file (YAML) ----------
+	if cfgFile := viper.GetString("config-file"); cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+		if err := viper.ReadInConfig(); err != nil {
+			log.Fatalf("failed to read config file: %v", err)
 		}
-
-		// non-blocking errors
-		if err := client.FetchOnlineUsersCount(token); err != nil {
-			log.Printf("Error FetchOnlineUsersCount: %v", err)
-		}
-
-		if err := client.FetchServerStatus(token); err != nil {
-			log.Printf("Error FetchServerStatus: %v", err)
-		}
-
-		if err := client.FetchInboundsList(token); err != nil {
-			log.Printf("Error FetchInboundsList: %v", err)
-		}
-	})
-	if err != nil {
-		log.Fatalf("Schedule job: %v", err)
 	}
 
-	s.StartAsync()
+	// ---------- 5. Set defaults ----------
+	viper.SetDefault("osmexporter.address", "localhost")
+	viper.SetDefault("osmexporter.port", "9100")
+	viper.SetDefault("osmexporter.scrape_timeout", 30)
+	viper.SetDefault("threexui.timeout", 15)
+	viper.SetDefault("threexui.clients_bytes_rows", 0)
 
-	http.Handle("/metrics", BasicAuthMiddleware(
-		cliConfig.MetricsUsername,
-		cliConfig.MetricsPassword,
-		cliConfig.ProtectedMetrics,
-	)(promhttp.Handler()))
+	// ---------- 6. Unmarshal into typed config ----------
+	var cfg config.Config
+	if err := viper.Unmarshal(&cfg); err != nil {
+		log.Fatalf("failed to unmarshal config: %v", err)
+	}
 
-	log.Printf("Listening %s:%s", cliConfig.Ip, cliConfig.Port)
-	log.Fatal(http.ListenAndServe(cliConfig.Ip+":"+cliConfig.Port, nil))
+	// ---------- 7. Validation (optional) ----------
+	if cfg.ThreeXUI.PanelPath == "" {
+		log.Fatal("threexui.panel_path is required (set via YAML, --panel-path, or PANEL_PATH)")
+	}
+
+	// ---------- 8. Create loggers (tagged) ----------
+	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
+	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
+
+	// ---------- 9. Build collectors from config ----------
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(threexui.NewCollector(config.ThreeXUIConfig{
+		PanelPort:          cfg.ThreeXUI.PanelPort,
+		PanelPath:          cfg.ThreeXUI.PanelPath,
+		Username:           cfg.ThreeXUI.Username,
+		Password:           cfg.ThreeXUI.Password,
+		InsecureSkipVerify: cfg.ThreeXUI.InsecureSkipVerify,
+		ClientsBytesRows:   cfg.ThreeXUI.ClientsBytesRows,
+		Timeout:            cfg.ThreeXUI.Timeout,
+	}, threeXUILogger))
+
+	// ---------- 10. HTTP handler ----------
+	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
+		Timeout: time.Duration(cfg.OBFSExporter.ScrapeTimeout) * time.Second,
+	})
+	http.Handle("/metrics", handler)
+
+	addr := cfg.OBFSExporter.Address + ":" + cfg.OBFSExporter.Port
+	obfsExporterLogger.Printf("metrics server starting on %s", addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }

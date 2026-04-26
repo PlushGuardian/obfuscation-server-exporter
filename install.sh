@@ -31,7 +31,7 @@ esac
 
 # Get latest release tag
 echo "Fetching latest release information..."
-LATEST_RELEASE=$(curl -s https://api.github.com/repos/hteppl/3x-ui-exporter/releases/latest)
+LATEST_RELEASE=$(curl -s https://api.github.com/repos/hteppl/obfs-exporter/releases/latest)
 if [ $? -ne 0 ] || [ -z "$LATEST_RELEASE" ]; then
     echo "Failed to fetch release information. Installation aborted."
     exit 1
@@ -41,9 +41,9 @@ VERSION=$(echo "${LATEST_RELEASE}" | grep -Po '"tag_name": "\K.*?(?=")')
 echo -e "\n${PURPLE}✨ Starting 3X-UI Exporter $VERSION automated install wizard...\033[0m"
 
 # Create dedicated system user for running the service
-step 1 "Creating x-ui-exporter user"
-if ! id -u x-ui-exporter > /dev/null 2>&1; then
-    useradd -r -s /bin/false x-ui-exporter
+step 1 "Creating obfs-exporter user"
+if ! id -u obfs-exporter > /dev/null 2>&1; then
+    useradd -r -s /bin/false obfs-exporter
     if [ $? -ne 0 ]; then
         echo "Failed to create user. Installation aborted."
         exit 1
@@ -52,8 +52,8 @@ fi
 
 # Download the appropriate archive
 TEMP_DIR=$(mktemp -d)
-ARCHIVE_NAME="3x-ui-exporter-${VERSION}-linux-${ARCH}.tar.gz"
-DOWNLOAD_URL="https://github.com/hteppl/3x-ui-exporter/releases/download/${VERSION}/${ARCHIVE_NAME}"
+ARCHIVE_NAME="obfs-exporter-${VERSION}-linux-${ARCH}.tar.gz"
+DOWNLOAD_URL="https://github.com/hteppl/obfs-exporter/releases/download/${VERSION}/${ARCHIVE_NAME}"
 
 step 2 "Downloading binary from: ${DOWNLOAD_URL}"
 curl -L -o "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
@@ -73,8 +73,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Force remove old binary if exists
-if [ -f /usr/local/bin/x-ui-exporter ]; then
-    rm -f /usr/local/bin/x-ui-exporter
+if [ -f /usr/local/bin/obfs-exporter ]; then
+    rm -f /usr/local/bin/obfs-exporter
     if [ $? -ne 0 ]; then
         echo "Failed to remove old binary. Installation aborted."
         rm -rf "${TEMP_DIR}"
@@ -84,7 +84,7 @@ fi
 
 # Install binary to /usr/local/bin
 step 4 "Installing binary to /usr/local/bin..."
-cp "${TEMP_DIR}/x-ui-exporter" /usr/local/bin/
+cp "${TEMP_DIR}/obfs-exporter" /usr/local/bin/
 if [ $? -ne 0 ]; then
     echo "Failed to install binary. Installation aborted."
     rm -rf "${TEMP_DIR}"
@@ -93,18 +93,18 @@ fi
 
 # Clean up and set permissions
 rm -rf "${TEMP_DIR}"
-chmod 755 /usr/local/bin/x-ui-exporter
+chmod 755 /usr/local/bin/obfs-exporter
 
 # Create config directory
 step 5 "Creating configuration directory..."
-mkdir -p /etc/x-ui-exporter/
+mkdir -p /etc/obfs-exporter/
 if [ $? -ne 0 ]; then
     echo "Failed to create config directory. Installation aborted."
     exit 1
 fi
 
 # Check if config file already exists
-CONFIG_FILE="/etc/x-ui-exporter/config.yaml"
+CONFIG_FILE="/etc/obfs-exporter/config.yaml"
 SKIP_CONFIG_SETUP=0
 if [ -f "$CONFIG_FILE" ]; then
     echo "Configuration file already exists at $CONFIG_FILE"
@@ -127,7 +127,7 @@ fi
 if [ $SKIP_CONFIG_SETUP -eq 0 ]; then
     # Download example config file
     echo "Downloading example config from GitHub..."
-    curl -s -o "$CONFIG_FILE" https://raw.githubusercontent.com/hteppl/3x-ui-exporter/main/config-example.yaml
+    curl -s -o "$CONFIG_FILE" https://raw.githubusercontent.com/hteppl/obfs-exporter/main/config-example.yaml
     if [ $? -ne 0 ]; then
         echo "Failed to download config file. Installation aborted."
         exit 1
@@ -136,20 +136,30 @@ if [ $SKIP_CONFIG_SETUP -eq 0 ]; then
     # Interactive configuration
     echo "Provide your 3X-UI panel details:"
 
-    # Get Panel URL
+    # Get Panel Port
     while true; do
-        read -p "Enter Panel URL (e.g., http://example.com:54321): " PANEL_URL
-        # Remove trailing slash if present
-        PANEL_URL=${PANEL_URL%/}
+        read -p "Enter panel port (e.g., 2053): " PANEL_PORT
+        if [[ "$PANEL_PORT" =~ ^[0-9]+$ ]] && [ "$PANEL_PORT" -ge 1 ] && [ "$PANEL_PORT" -le 65535 ]; then
+            break
+        else
+            echo "Error: Port must be a number between 1 and 65535."
+        fi
+    done
 
-        if [ -z "$PANEL_URL" ]; then
-            echo "Error: Panel URL cannot be empty. Please try again."
-        elif [[ ! "$PANEL_URL" =~ ^https?:// ]]; then
-            echo "Error: Panel URL must start with http:// or https://. Please try again."
+    # Get Panel Path
+    while true; do
+        read -p "Enter panel path (e.g., /panel/ or /xui/, but usually /ADKhilALhvlzkjcBLHJXCEp/ or something similar): " PANEL_PATH
+        # Normalise: remove leading and trailing slashes
+        PANEL_PATH=$(echo "$PANEL_PATH" | sed 's:^/*::; s:/*$::')
+        if [ -z "$PANEL_PATH" ]; then
+            echo "Error: Panel path cannot be empty."
         else
             break
         fi
     done
+
+    # Build the full base URL
+    PANEL_URL="http://localhost:${PANEL_PORT}/${PANEL_PATH}"
 
     # Get credentials
     while true; do
@@ -213,31 +223,34 @@ if [ $SKIP_CONFIG_SETUP -eq 0 ]; then
     # Update the config file with user input
     echo "Updating configuration file with provided details..."
     # Escape special characters in variables for sed
-    PANEL_URL_ESCAPED=$(echo "$PANEL_URL" | sed 's/[\/&]/\\&/g')
+    PANEL_PATH_ESCAPED=$(echo "$PANEL_PATH" | sed 's/[\\/"]/\\&/g')
     PANEL_USERNAME_ESCAPED=$(echo "$PANEL_USERNAME" | sed 's/[\/&]/\\&/g')
     PANEL_PASSWORD_ESCAPED=$(echo "$PANEL_PASSWORD" | sed 's/[\/&]/\\&/g')
 
-    sed -i "s|panel-base-url:.*|panel-base-url: \"${PANEL_URL_ESCAPED}\"|" "$CONFIG_FILE"
-    sed -i "s|panel-username:.*|panel-username: \"${PANEL_USERNAME_ESCAPED}\"|" "$CONFIG_FILE"
-    sed -i "s|panel-password:.*|panel-password: \"${PANEL_PASSWORD_ESCAPED}\"|" "$CONFIG_FILE"
+    sed -i "s|^\s*panel-username:.*|    panel-username: \"${PANEL_USERNAME_ESCAPED}\"|" "$CONFIG_FILE"
+    sed -i "s|^\s*panel-password:.*|    panel-password: \"${PANEL_PASSWORD_ESCAPED}\"|" "$CONFIG_FILE"
+    sed -i "s|^\s*panel-port:.*|    panel-port: ${PANEL_PORT}|" "$CONFIG_FILE"
+    sed -i "s|^\s*panel-path:.*|    panel-path: \"${PANEL_PATH_ESCAPED}\"|" "$CONFIG_FILE"
+
+
 else
     echo "Using existing configuration file without changes."
 fi
 
 chmod 644 "$CONFIG_FILE"
-chown -R x-ui-exporter:x-ui-exporter /etc/x-ui-exporter
+chown -R obfs-exporter:obfs-exporter /etc/obfs-exporter
 
 # Create systemd service file
 step 6 "Downloading systemd service file from GitHub..."
-curl -s -o /etc/systemd/system/x-ui-exporter.service https://raw.githubusercontent.com/hteppl/3x-ui-exporter/main/x-ui-exporter.service
+curl -s -o /etc/systemd/system/obfs-exporter.service
 
 if [ $? -ne 0 ]; then
     echo "Failed to create service file. Installation aborted."
     exit 1
 fi
 
-sed -i "s|^Description=\(.*\)|Description=\1 ${VERSION}|" /etc/systemd/system/x-ui-exporter.service
-chmod 644 /etc/systemd/system/x-ui-exporter.service
+sed -i "s|^Description=\(.*\)|Description=\1 ${VERSION}|" /etc/systemd/system/obfs-exporter.service
+chmod 644 /etc/systemd/system/obfs-exporter.service
 
 # Reload systemd to recognize the new service
 step 7 "Reloading systemd daemon..."
@@ -248,35 +261,35 @@ if [ $? -ne 0 ]; then
 fi
 
 # Enable and start (or restart) the service
-step 8 "Enabling and starting x-ui-exporter service..."
-if systemctl is-active --quiet x-ui-exporter.service; then
+step 8 "Enabling and starting obfs-exporter service..."
+if systemctl is-active --quiet obfs-exporter.service; then
     echo "Service is already running. Restarting..."
-    systemctl restart x-ui-exporter.service
+    systemctl restart obfs-exporter.service
     if [ $? -ne 0 ]; then
         echo "Failed to restart service. Installation aborted."
         exit 1
     fi
 else
-    systemctl enable x-ui-exporter.service
+    systemctl enable obfs-exporter.service
     if [ $? -ne 0 ]; then
         echo "Failed to enable service. Installation aborted."
         exit 1
     fi
 
-    systemctl start x-ui-exporter.service
+    systemctl start obfs-exporter.service
     if [ $? -ne 0 ]; then
         echo "Failed to start service. Installation aborted."
         exit 1
     fi
 fi
 
-sudo systemctl status x-ui-exporter --no-pager
+sudo systemctl status obfs-exporter --no-pager
 
 echo -e "\n${PURPLE}✅ 3X-UI Exporter is installed!"
-echo -e "${GREEN}\nCheck status:      ${NC}sudo systemctl status x-ui-exporter --no-pager"
-echo -e "${GREEN}Binary path:       ${NC}/usr/local/bin/x-ui-exporter"
+echo -e "${GREEN}\nCheck status:      ${NC}sudo systemctl status obfs-exporter --no-pager"
+echo -e "${GREEN}Binary path:       ${NC}/usr/local/bin/obfs-exporter"
 echo -e "${GREEN}Config path:       ${NC}$CONFIG_FILE"
 echo ""
-echo -e "You can view logs with: journalctl -u x-ui-exporter.service"
+echo -e "You can view logs with: journalctl -u obfs-exporter.service"
 echo -e "Support the project: \033[1;33mhttps://pay.cloudtips.ru/p/67507843${NC}"
 echo ""
