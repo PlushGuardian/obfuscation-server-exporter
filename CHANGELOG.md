@@ -9,6 +9,8 @@ The main focus of this pull request was to prepare the repository for implementa
 
 - viper: added viper for more streamlined config and CLI management.
 
+- Added logging
+
 - Issue Templates: Introduced a feature request issue template located at .github/issue_templates/feature_request.yaml to streamline user feedback and suggestions
 
 - .gitignore: Expanded the .gitignore file to cover a wider range of development artifacts, environment files, and local exporter binaries
