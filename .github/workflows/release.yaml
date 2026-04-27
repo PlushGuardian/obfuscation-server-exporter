@@ -12,11 +12,13 @@ jobs:
     secrets:
       gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
-  UseOutputs:
+  use-outputs:
     needs: semantic
-    run: |
-      echo "Version: ${{ needs.semantic.outputs.new_version }}"
-      echo "Published: ${{ needs.semantic.outputs.release_published }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Version: ${{ needs.semantic.outputs.new_version }}"
+          echo "Published: ${{ needs.semantic.outputs.release_published }}"
 
   docker-build-and-push:
     needs: semantic
