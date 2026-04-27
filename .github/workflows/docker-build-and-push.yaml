@@ -69,7 +69,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: ${{ inputs.architectures }}
+          platforms: ${{ inputs.platforms }}
           build-args: |
             GIT_TAG=${{ inputs.version }}
             GIT_COMMIT=${{ inputs.commit_sha }}
