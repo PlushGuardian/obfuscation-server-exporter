@@ -1,3 +1,14 @@
+## [2.1.2](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.1...v2.1.2) (2026-04-27)
+
+
+### Bug Fixes
+
+* add tab in workflows/release.yaml for proper readability of json ([bf52f64](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/bf52f64f710c96374624ce31f654668b7b171d4a))
+* fix binaries job name ([a5ed787](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/a5ed7870be0bc9597b6906695b260148a1a6f03c))
+* make all build related jobs run right after merge ([057f7a9](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/057f7a9b26aedcab48ed88f0dc7f1cdb544ed836))
+* remove github-token from name ([#22](https://github.com/PlushGuardian/obfuscation-server-exporter/issues/22)) ([382cdf3](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/382cdf3e11dd262dbd844012fea206095a58dba1))
+* try to add | instead of > for variables  ([#24](https://github.com/PlushGuardian/obfuscation-server-exporter/issues/24)) ([1926caf](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/1926caf22c9f797e727a4e28f18920358b80fe0c))
+
 ## [2.1.1](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.0...v2.1.1) (2026-04-27)
 
 
