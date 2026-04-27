@@ -42,7 +42,9 @@ jobs:
         ]
 
   attach-binaries-to-release:
-    needs: binaries
+    needs: 
+      - binaries
+      - semantic
     runs-on: ubuntu-latest
     steps:
       - name: Download all binary artifacts
