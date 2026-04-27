@@ -28,7 +28,7 @@ jobs:
       dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  build-binaries:
+  binaries:
     needs: semantic
     uses: ./.github/workflows/binaries.yml
     with:
