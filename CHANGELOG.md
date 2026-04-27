@@ -1,3 +1,11 @@
+## [2.1.1](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.0...v2.1.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* use GH_RELEASE_PAT in pipeline ([3195616](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/3195616393419554eb17f93c8db726f67d4510ec))
+* use GH_RELEASE_PAT in pipeline instead of GITHUB_TOKEN to avoid authentication issues ([9de186e](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/9de186e32c2fb342189c8f1eff30728a2d8ab95d))
+
 # [2.1.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.0.0...v2.1.0) (2026-04-27)
 
 
