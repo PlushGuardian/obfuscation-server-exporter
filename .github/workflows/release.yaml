@@ -18,7 +18,7 @@ jobs:
     with:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
-      architectures: >
+      architectures: |
       [
         {"os":"linux","arch":"amd64"},
         {"os":"linux","arch":"arm64"},
@@ -34,7 +34,7 @@ jobs:
     with:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
-      architectures: >
+      architectures: |
         [
           {"os":"linux","arch":"amd64"},
           {"os":"linux","arch":"arm64"},
