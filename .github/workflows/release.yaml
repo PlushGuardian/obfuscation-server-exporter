@@ -1,7 +1,7 @@
 name: Release
 on:
   push:
-    branches: [test-ci]
+    branches: [main]
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/docker-build-and-push.yaml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
-      commit_sha: ${{ github.sha }}
+      commit_sha: ${{ github.sha }}Update semantic-release.yaml
       architectures: |
         [
           {"os":"linux","arch":"amd64"},
