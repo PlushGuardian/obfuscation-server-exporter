@@ -40,11 +40,13 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
             type=semver,pattern={{major}},value=${{ inputs.version }}
             type=raw,value=latest
-
+    
       - name: Generate Docker platform list
         id: platforms
+        env:
+          ARCH_JSON: ${{ inputs.architectures }}
         run: |
-          platforms=$(echo '${{ inputs.architectures }}' | jq -r '
+          platforms=$(jq -r '
             [.[] |
               if .arch == "arm" and .goarm then
                 "linux/arm/v\(.goarm)"
@@ -54,7 +56,7 @@ jobs:
                 "\(.os)/\(.arch)"
               end
             ] | join(",")
-          ')
+          ' <<< "$ARCH_JSON")
           echo "platforms=${platforms}" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
