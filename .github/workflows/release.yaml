@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  semantic-release:
     runs-on: ubuntu-latest
     container:
       image: docker.io/plushguardian/semantic-release-for-ci:1.0.1
@@ -21,5 +21,5 @@ jobs:
 
       - name: Run semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
         run: npx semantic-release
