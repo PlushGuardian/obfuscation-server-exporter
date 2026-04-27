@@ -1,3 +1,11 @@
+## [2.1.4](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.3...v2.1.4) (2026-04-27)
+
+
+### Bug Fixes
+
+* check varialbe output ([c553a78](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/c553a781a2adc39587d0dc91eb381960abbeb653))
+* update output step ([11e4d0a](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/11e4d0a09ae8bbd2e7e3b848b8b004c2aad5272f))
+
 ## [2.1.3](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.2...v2.1.3) (2026-04-27)
 
 
