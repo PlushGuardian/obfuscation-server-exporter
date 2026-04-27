@@ -47,14 +47,15 @@ jobs:
     needs: run-semantic-release
     runs-on: ubuntu-latest
     outputs:
+      new_version: ${{ needs.run-semantic-release.outputs.new_version }}
       release_published: ${{ steps.set_flag.outputs.release_published }}
     steps:
       - name: Determine if a release was published
         id: set_flag
         run: |
-          if [ "${{ steps.get_version.outputs.version }}" != "${{ steps.prev_tag.outputs.old }}"  ]; then
+          if [ -n "${{ needs.run-semantic-release.outputs.new_version }}" ]; then
             echo "release_published=true" >> $GITHUB_OUTPUT
-            echo "✅ A new release was published: ${{ steps.get_version.outputs.version }}"
+            echo "✅ A new release was published: ${{ needs.run-semantic-release.outputs.new_version }}"
           else
             echo "release_published=false" >> $GITHUB_OUTPUT
             echo "⏭️ No new release – skipping downstream jobs"
