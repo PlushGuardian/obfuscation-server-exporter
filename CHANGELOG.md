@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.0.0...v2.1.0) (2026-04-27)
+
+
+### Features
+
+* add system collector with two metrics ([#19](https://github.com/PlushGuardian/obfuscation-server-exporter/issues/19)) ([597b025](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/597b025f4fc639215b4aaea279ecd0c3dcaefafd))
+
 # CHANGELOG.md
 
 
