@@ -1,3 +1,10 @@
+## [2.1.3](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.2...v2.1.3) (2026-04-27)
+
+
+### Bug Fixes
+
+* fix variable references in semantic-release.yaml ([91a4f2a](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/91a4f2addaaebb30110e762d588e1657a02f1a48))
+
 ## [2.1.2](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.1...v2.1.2) (2026-04-27)
 
 
