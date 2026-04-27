@@ -1,0 +1,53 @@
+name: Build OBFSExporter binaries
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      commit_sha:
+        required: true
+        type: string
+      architectures:
+        required: true
+        type: string
+
+jobs:
+  build-binaries:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJson(inputs.architectures) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.7'
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          GOARM: ${{ matrix.goarm || '' }}
+        run: |
+          go build \
+            -ldflags="-w -s -X main.version=${{ inputs.version }} -X main.commit=${{ inputs.commit_sha }}" \
+            -trimpath \
+            -o obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+
+      - name: Archive binary
+        run: |
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            zip obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.zip obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.exe
+          else
+            tar -czf obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.tar.gz obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}
+          path: obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.*

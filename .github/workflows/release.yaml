@@ -7,19 +7,55 @@ permissions:
   contents: write
 
 jobs:
-  semantic-release:
+  semantic:
+    uses: ./.github/workflows/semantic-release.yml
+    secrets:
+      github_token: ${{ secrets.GH_RELEASE_PAT }}
+
+  docker-build-and-push:
+    needs: semantic
+    uses: ./.github/workflows/docker-build-and-push.yml
+    with:
+      version: ${{ needs.semantic.outputs.new_version }}
+      commit_sha: ${{ github.sha }}
+      architectures: >
+      [
+        {"os":"linux","arch":"amd64"},
+        {"os":"linux","arch":"arm64"},
+        {"os":"linux","arch":"arm","goarm":"7"}
+      ]
+    secrets:
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  build-binaries:
+    needs: semantic
+    uses: ./.github/workflows/build-binaries.yml
+    with:
+      version: ${{ needs.semantic.outputs.new_version }}
+      commit_sha: ${{ github.sha }}
+      architectures: >
+        [
+          {"os":"linux","arch":"amd64"},
+          {"os":"linux","arch":"arm64"},
+          {"os":"linux","arch":"arm","goarm":"7"}
+        ]
+
+  attach-binaries-to-release:
+    needs: binaries
     runs-on: ubuntu-latest
-    container:
-      image: docker.io/plushguardian/semantic-release-for-ci:1.0.1
     steps:
-      - uses: actions/checkout@v4
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
+          path: artifacts
+          pattern: obfs-exporter-*
+          merge-multiple: true
 
-      - name: Mark workspace as Git safe directory
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Run semantic-release
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.semantic.outputs.new_version }}
+          files: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
-        run: npx semantic-release

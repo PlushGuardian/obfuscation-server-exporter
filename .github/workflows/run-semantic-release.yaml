@@ -1,0 +1,41 @@
+name: Reusable Semantic Release
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: 'Docker image containing semantic-release'
+        type: string
+        default: 'docker.io/plushguardian/semantic-release-for-ci:1.0.1'
+    secrets:
+      github_token:
+        required: true
+    outputs:
+      new_version:
+        description: 'The newly created version tag (e.g., v1.2.3)'
+        value: ${{ jobs.release.outputs.new_version }}
+
+jobs:
+  run-semantic-release:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.image }}
+    outputs:
+      new_version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout code (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mark workspace as Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        run: npx semantic-release
+
+      - name: Extract new version tag
+        id: get_version
+        run: echo "version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
