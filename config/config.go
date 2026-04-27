@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	OBFSExporter OBFSExporterConfig `mapstructure:"obfsexporter"`
+	system       SystemConfig       `mapstructure:"system"`
 	ThreeXUI     ThreeXUIConfig     `mapstructure:"threexui"`
 }
 
@@ -14,6 +15,9 @@ type OBFSExporterConfig struct {
 	Address       string `mapstructure:"address"`
 	Port          string `mapstructure:"port"`
 	ScrapeTimeout int    `mapstructure:"scrape-timeout"` // seconds
+}
+
+type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
