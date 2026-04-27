@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
-LABEL org.opencontainers.image.source=https://github.com/hteppl/obfs-exporter
+LABEL org.opencontainers.image.source=https://github.com/PlushGuardian/obfuscation-server-exporter
 
 USER nonroot:nonroot
 
@@ -37,4 +37,4 @@ COPY --from=builder --chown=nonroot:nonroot /usr/bin/obfs-exporter /obfs-exporte
 
 ENV PATH="/:${PATH}"
 
-ENTRYPOINT ["/osm-exporter"]
+ENTRYPOINT ["/obfs-exporter"]
