@@ -14,6 +14,9 @@ on:
       new_version:
         description: 'The newly created version tag (e.g., v1.2.3)'
         value: ${{ jobs.release.outputs.new_version }}
+      release_published:
+        description: 'Whether a new release was published in this run'
+        value: ${{ jobs.release.outputs.release_published }}
 
 jobs:
   run-semantic-release:
@@ -39,3 +42,20 @@ jobs:
       - name: Extract new version tag
         id: get_version
         run: echo "version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+
+  check-new-release:
+    needs: run-semantic-release
+    runs-on: ubuntu-latest
+    outputs:
+      release_published: ${{ steps.set_flag.outputs.release_published }}
+    steps:
+      - name: Determine if a release was published
+        id: set_flag
+        run: |
+          if [ "${{ steps.get_version.outputs.version }}" != "${{ steps.prev_tag.outputs.old }}"  ]; then
+            echo "release_published=true" >> $GITHUB_OUTPUT
+            echo "✅ A new release was published: ${{ steps.get_version.outputs.version }}"
+          else
+            echo "release_published=false" >> $GITHUB_OUTPUT
+            echo "⏭️ No new release – skipping downstream jobs"
+          fi

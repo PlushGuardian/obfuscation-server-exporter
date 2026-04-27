@@ -8,13 +8,14 @@ permissions:
 
 jobs:
   semantic:
-    uses: ./.github/workflows/semantic-release.yml
+    uses: ./.github/workflows/semantic-release.yaml
     secrets:
       gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
   docker-build-and-push:
     needs: semantic
-    uses: ./.github/workflows/docker-build-and-push.yml
+    if: needs.semantic.outputs.release_published == 'true'
+    uses: ./.github/workflows/docker-build-and-push.yaml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
@@ -30,7 +31,8 @@ jobs:
 
   binaries:
     needs: semantic
-    uses: ./.github/workflows/binaries.yml
+    if: needs.semantic.outputs.release_published == 'true'
+    uses: ./.github/workflows/binaries.yaml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
@@ -42,7 +44,10 @@ jobs:
         ]
 
   attach-binaries-to-release:
-    needs: binaries
+    if: needs.semantic.outputs.release_published == 'true'
+    needs:
+      - binaries
+      - semantic
     runs-on: ubuntu-latest
     steps:
       - name: Download all binary artifacts
