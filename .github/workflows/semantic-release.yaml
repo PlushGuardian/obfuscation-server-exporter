@@ -13,10 +13,10 @@ on:
     outputs:
       new_version:
         description: 'The newly created version tag (e.g., v1.2.3)'
-        value: ${{ jobs.release.outputs.new_version }}
+        value: ${{ jobs.run-semantic-release.outputs.new_version }}
       release_published:
         description: 'Whether a new release was published in this run'
-        value: ${{ jobs.release.outputs.release_published }}
+        value: ${{ jobs.check-new-release.outputs.release_published }}
 
 jobs:
   run-semantic-release:

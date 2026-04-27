@@ -1,28 +1,3 @@
-## [2.1.4](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.3...v2.1.4) (2026-04-27)
-
-
-### Bug Fixes
-
-* check varialbe output ([c553a78](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/c553a781a2adc39587d0dc91eb381960abbeb653))
-* update output step ([11e4d0a](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/11e4d0a09ae8bbd2e7e3b848b8b004c2aad5272f))
-
-## [2.1.3](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.2...v2.1.3) (2026-04-27)
-
-
-### Bug Fixes
-
-* fix variable references in semantic-release.yaml ([91a4f2a](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/91a4f2addaaebb30110e762d588e1657a02f1a48))
-
-## [2.1.2](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.1...v2.1.2) (2026-04-27)
-
-
-### Bug Fixes
-
-* add tab in workflows/release.yaml for proper readability of json ([bf52f64](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/bf52f64f710c96374624ce31f654668b7b171d4a))
-* fix binaries job name ([a5ed787](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/a5ed7870be0bc9597b6906695b260148a1a6f03c))
-* make all build related jobs run right after merge ([057f7a9](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/057f7a9b26aedcab48ed88f0dc7f1cdb544ed836))
-* remove github-token from name ([#22](https://github.com/PlushGuardian/obfuscation-server-exporter/issues/22)) ([382cdf3](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/382cdf3e11dd262dbd844012fea206095a58dba1))
-* try to add | instead of > for variables  ([#24](https://github.com/PlushGuardian/obfuscation-server-exporter/issues/24)) ([1926caf](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/1926caf22c9f797e727a4e28f18920358b80fe0c))
 
 ## [2.1.1](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.0...v2.1.1) (2026-04-27)
 
@@ -39,10 +14,8 @@
 
 * add system collector with two metrics ([#19](https://github.com/PlushGuardian/obfuscation-server-exporter/issues/19)) ([597b025](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/597b025f4fc639215b4aaea279ecd0c3dcaefafd))
 
-# CHANGELOG.md
 
-
-## v2.0.0
+# v2.0.0
 
 The main focus of this pull request was to prepare the repository for implementation of two additional exporters. Thus, the code was restructured, the exporter renamed, and API calls to external URL of 3X-UI panel removed.
 
