@@ -8,7 +8,9 @@ permissions:
 
 jobs:
   release:
-    runs-on: docker.io/plushguardian/semantic-release-for-ci:1.0.0
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/plushguardian/semantic-release-for-ci:1.0.0
     steps:
       - uses: actions/checkout@v4
         with:
