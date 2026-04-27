@@ -8,7 +8,7 @@ on:
         type: string
         default: 'docker.io/plushguardian/semantic-release-for-ci:1.0.1'
     secrets:
-      github_token:
+      gh_token:
         required: true
     outputs:
       new_version:
@@ -33,7 +33,7 @@ jobs:
 
       - name: Run semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.github_token }}
+          GITHUB_TOKEN: ${{ secrets.gh_token }}
         run: npx semantic-release
 
       - name: Extract new version tag

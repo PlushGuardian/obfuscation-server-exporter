@@ -10,7 +10,7 @@ jobs:
   semantic:
     uses: ./.github/workflows/semantic-release.yml
     secrets:
-      github_token: ${{ secrets.GH_RELEASE_PAT }}
+      gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
   docker-build-and-push:
     needs: semantic
@@ -30,7 +30,7 @@ jobs:
 
   build-binaries:
     needs: semantic
-    uses: ./.github/workflows/build-binaries.yml
+    uses: ./.github/workflows/binaries.yml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
