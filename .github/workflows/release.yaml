@@ -14,6 +14,7 @@ jobs:
 
   docker-build-and-push:
     needs: semantic
+    if: needs.semantic.outputs.release_published == 'true'
     uses: ./.github/workflows/docker-build-and-push.yaml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
@@ -30,6 +31,7 @@ jobs:
 
   binaries:
     needs: semantic
+    if: needs.semantic.outputs.release_published == 'true'
     uses: ./.github/workflows/binaries.yaml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
@@ -42,7 +44,8 @@ jobs:
         ]
 
   attach-binaries-to-release:
-    needs: 
+    if: needs.semantic.outputs.release_published == 'true'
+    needs:
       - binaries
       - semantic
     runs-on: ubuntu-latest
