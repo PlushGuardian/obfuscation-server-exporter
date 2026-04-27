@@ -1,4 +1,4 @@
-name: Reusable Semantic Release
+name: Run Semantic Release
 
 on:
   workflow_call:
