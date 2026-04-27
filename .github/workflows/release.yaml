@@ -19,11 +19,11 @@ jobs:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
       architectures: |
-      [
-        {"os":"linux","arch":"amd64"},
-        {"os":"linux","arch":"arm64"},
-        {"os":"linux","arch":"arm","goarm":"7"}
-      ]
+        [
+          {"os":"linux","arch":"amd64"},
+          {"os":"linux","arch":"arm64"},
+          {"os":"linux","arch":"arm","goarm":"7"}
+        ]
     secrets:
       dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
