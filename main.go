@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
+	"github.com/PlushGuardian/obfuscation-server-exporter/system"
 	"github.com/PlushGuardian/obfuscation-server-exporter/threexui"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -53,9 +54,9 @@ func main() {
 	}
 
 	// ---------- 5. Set defaults ----------
-	viper.SetDefault("osmexporter.address", "localhost")
-	viper.SetDefault("osmexporter.port", "9100")
-	viper.SetDefault("osmexporter.scrape_timeout", 30)
+	viper.SetDefault("obfsexporter.address", "localhost")
+	viper.SetDefault("obfsexporter.port", "9100")
+	viper.SetDefault("obfsexporter.scrape_timeout", 30)
 	viper.SetDefault("threexui.timeout", 15)
 	viper.SetDefault("threexui.clients_bytes_rows", 0)
 
@@ -71,8 +72,9 @@ func main() {
 	}
 
 	// ---------- 8. Create loggers (tagged) ----------
-	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
+	systemLogger := log.New(file, "[system] ", log.LstdFlags)
+	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
 
 	// ---------- 9. Build collectors from config ----------
 	reg := prometheus.NewRegistry()
@@ -85,6 +87,7 @@ func main() {
 		ClientsBytesRows:   cfg.ThreeXUI.ClientsBytesRows,
 		Timeout:            cfg.ThreeXUI.Timeout,
 	}, threeXUILogger))
+	reg.MustRegister(system.NewCollector(config.SystemConfig{}, systemLogger))
 
 	// ---------- 10. HTTP handler ----------
 	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
