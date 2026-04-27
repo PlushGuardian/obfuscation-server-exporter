@@ -11,6 +11,7 @@ import (
 // System collects a single system metric.
 type System struct {
 	totalMemoryDesc *prometheus.Desc
+	usedMemoryDesc  *prometheus.Desc
 	logger          *log.Logger
 }
 
@@ -22,12 +23,18 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			"Total installed physical memory in bytes",
 			nil, nil,
 		),
+		usedMemoryDesc: prometheus.NewDesc( // NEW: descriptor for used memory
+			"system_memory_used_bytes",
+			"Currently used physical memory in bytes",
+			nil, nil,
+		),
 		logger: logger,
 	}
 }
 
 func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.totalMemoryDesc
+	ch <- c.usedMemoryDesc
 }
 
 func (c *System) Collect(ch chan<- prometheus.Metric) {
@@ -39,5 +46,10 @@ func (c *System) Collect(ch chan<- prometheus.Metric) {
 		c.totalMemoryDesc,
 		prometheus.GaugeValue,
 		float64(v.Total),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.usedMemoryDesc,
+		prometheus.GaugeValue,
+		float64(v.Used),
 	)
 }
