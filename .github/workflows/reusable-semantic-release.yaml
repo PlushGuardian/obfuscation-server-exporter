@@ -55,8 +55,8 @@ jobs:
             # git checkout -B main origin/main
             # git merge ${{ github.event.pull_request.head.sha }} --no-edit
             # # Remove CI detection so semantic-release doesn't bail
-            # unset GITHUB_ACTIONS
-            # unset GITHUB_EVENT_NAME
+            unset GITHUB_ACTIONS
+            unset GITHUB_EVENT_NAME
             npx semantic-release --dry-run --no-verify --branches "${SOURCE_BRANCH#refs/heads/}"
           else
             output=$(npx semantic-release 2>&1)
