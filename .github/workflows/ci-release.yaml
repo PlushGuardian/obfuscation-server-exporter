@@ -8,17 +8,18 @@ permissions:
 
 jobs:
   semantic:
-    uses: ./.github/workflows/semantic-release.yaml
+    uses: ./.github/workflows/reusable-semantic-release.yaml
     secrets:
       gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
   docker-build-and-push:
     needs: semantic
     if: needs.semantic.outputs.release_published == 'true'
-    uses: ./.github/workflows/docker-build-and-push.yaml
+    uses: ./.github/workflows/reusable-docker-build-and-push.yaml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
+      dockerhub_repository: "obfs-exporter"
       architectures: |
         [
           {"os":"linux","arch":"amd64"},
@@ -32,10 +33,11 @@ jobs:
   binaries:
     needs: semantic
     if: needs.semantic.outputs.release_published == 'true'
-    uses: ./.github/workflows/binaries.yaml
+    uses: ./.github/workflows/reusable-binaries.yaml
     with:
       version: ${{ needs.semantic.outputs.new_version }}
       commit_sha: ${{ github.sha }}
+      binary_name: "obfs-exporter"
       architectures: |
         [
           {"os":"linux","arch":"amd64"},

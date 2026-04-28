@@ -1,13 +1,7 @@
 name: golangci-lint
-on:
-  push:
-    branches:
-      - main
-      - master
-  pull_request:
 
-permissions:
-  contents: read
+on:
+  workflow_call:
 
 jobs:
   golangci:
@@ -19,6 +13,6 @@ jobs:
         with:
           go-version: stable
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9 
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.10.1
