@@ -44,7 +44,7 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       marker: '<!-- SEMANTIC-RELEASE-PREVIEW -->'
     secrets:
-      github_token: ${{ secrets.GITHUB_TOKEN }}
+      gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
 
 
