@@ -15,7 +15,7 @@ jobs:
     with:
       dry_run: true
     secrets:
-      github_token: ${{ secrets.GH_RELEASE_PAT }}
+      gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
   comment:
     needs: preview-new-release
@@ -27,9 +27,9 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const releaseNeeded = `${{ needs.preview.outputs.release_published }}`;
-            const nextVersion = `${{ needs.preview.outputs.next_version }}`;
-            const releaseNotes = `${{ needs.preview.outputs.release_notes }}`;
+            const releaseNeeded = `${{ needs.preview-new-release.outputs.release_published }}`;
+            const nextVersion = `${{ needs.preview-new-release.outputs.next_version }}`;
+            const releaseNotes = `${{ needs.previewnew-release.outputs.release_notes }}`;
   
             let body = '';
   
