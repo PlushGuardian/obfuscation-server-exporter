@@ -58,7 +58,7 @@ jobs:
             # # Remove CI detection so semantic-release doesn't bail
             unset GITHUB_ACTIONS
             unset GITHUB_EVENT_NAME
-            output="$(sh -c "npx semantic-release --dry-run --no-ci --branches '${HEAD_REF}'")"
+            output="$(sh -c "npx semantic-release --dry-run --no-ci --branches '${ github.head_ref }'")"
           else
             output=$(npx semantic-release 2>&1)
           fi
