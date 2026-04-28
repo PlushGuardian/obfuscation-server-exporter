@@ -16,7 +16,7 @@ on:
         type: string
         description: 'Unique HTML comment that identifies the bot message (for example, <!-- BOT-COMMENT -->)'
     secrets:
-      github_token:
+      gh_token:
         required: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - name: Find, update, or create the comment
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.github_token }}
+          github-token: ${{ secrets.gh_token }}
           script: |
             const body   = `${{ inputs.body }}`;
             const prNum  = ${{ inputs.pr_number }};
