@@ -26,7 +26,7 @@ jobs:
       - name: Post release preview as PR comment
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GH_RELEASE_PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const releaseNeeded = `${{ needs.preview-new-release.outputs.release_published }}`;
             const nextVersion = `${{ needs.preview-new-release.outputs.next_version }}`;

@@ -32,6 +32,8 @@ jobs:
       image: ${{ inputs.image }}
     outputs:
       new_version: ${{ steps.get_version.outputs.version }}
+      release_published: ${{ steps.get_release_status.outputs.release_published }}
+      release_notes: ${{ steps.get_release_notes.outputs.release_notes }}
     steps:
       - name: Checkout code (full history)
         uses: actions/checkout@v6
@@ -66,7 +68,7 @@ jobs:
             git fetch --tags
             echo "new_version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
           else
-            version=$(sed -n 's/.*The next release version is \([^[:space:]]*\).*/\1/p' semrel-output.txt)
+            echo "new_version=$(sed -n 's/.*The next release version is \([^[:space:]]*\).*/\1/p' semrel-output.txt)" >> $GITHUB_OUTPUT
           fi
 
       - name: Extract release published
@@ -80,7 +82,7 @@ jobs:
 
       - name: Extract release notes
         if: inputs.dry_run == 'true'
-        id: parse
+        id: get_release_notes
         run: |
           output=$(cat semrel-output.txt)
           notes=$(echo "$output" | sed -n '/^#/,$p' || true)
