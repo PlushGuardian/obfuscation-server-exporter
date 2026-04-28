@@ -86,7 +86,14 @@ jobs:
         run: |
           output=$(cat semrel-output.txt)
           notes=$(echo "$output" | sed -n '/^#/,$p' || true)
-          echo "$notes" > release-notes.md
+        
+          cat release-notes.md # TODO remove
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           cat release-notes.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Debug all outputs
+        run: |
+          echo "new_version: ${{ steps.get_version.outputs.version }}"
+          echo "release_published: ${{ steps.get_release_status.outputs.release_published }}"
+          echo "release_notes: ${{ steps.get_release_notes.outputs.release_notes }}"
