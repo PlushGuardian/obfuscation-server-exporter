@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/shirou/gopsutil/v3/cpu"
 
-	// "github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/disk"
 	// "github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
@@ -28,6 +28,10 @@ type System struct {
 	load1Desc    *prometheus.Desc
 	load5Desc    *prometheus.Desc
 	load15Desc   *prometheus.Desc
+
+	// Disk
+	diskTotalDesc *prometheus.Desc
+	diskUsedDesc  *prometheus.Desc
 
 	// CPU state for delta calculation
 	lastCPUTimes *cpu.TimesStat
@@ -59,6 +63,7 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			"Used swap space in bytes",
 			nil, nil,
 		),
+
 		cpuUsageDesc: prometheus.NewDesc(
 			"system_cpu_usage_percent",
 			"Current overall CPU usage as a percentage (0-100)",
@@ -79,6 +84,18 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			"15-minute load average",
 			nil, nil,
 		),
+
+		diskTotalDesc: prometheus.NewDesc(
+			"system_disk_total_bytes",
+			"Total disk space in bytes per partition",
+			[]string{"device", "mountpoint", "fstype"}, nil,
+		),
+		diskUsedDesc: prometheus.NewDesc(
+			"system_disk_used_bytes",
+			"Used disk space in bytes per partition",
+			[]string{"device", "mountpoint", "fstype"}, nil,
+		),
+
 		logger: logger,
 	}
 }
@@ -96,6 +113,10 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.load5Desc
 	ch <- c.load15Desc
 
+	// Disk
+	ch <- c.diskTotalDesc
+	ch <- c.diskUsedDesc
+
 }
 
 func (c *System) Collect(ch chan<- prometheus.Metric) {
@@ -103,6 +124,7 @@ func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectSwap(ch)
 	c.collectCPU(ch)
 	c.collectLoad(ch)
+	c.collectDisk(ch)
 }
 
 func (c *System) collectMemory(ch chan<- prometheus.Metric) {
@@ -162,4 +184,22 @@ func (c *System) collectLoad(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.load1Desc, prometheus.GaugeValue, lavg.Load1)
 	ch <- prometheus.MustNewConstMetric(c.load5Desc, prometheus.GaugeValue, lavg.Load5)
 	ch <- prometheus.MustNewConstMetric(c.load15Desc, prometheus.GaugeValue, lavg.Load15)
+}
+
+func (c *System) collectDisk(ch chan<- prometheus.Metric) {
+	parts, err := disk.Partitions(false)
+	if err != nil {
+		c.logger.Printf("error listing disk partitions: %v", err)
+		return
+	}
+	for _, p := range parts {
+		usage, err := disk.Usage(p.Mountpoint)
+		if err != nil {
+			c.logger.Printf("error getting usage for %s: %v", p.Mountpoint, err)
+			continue
+		}
+		lbls := []string{p.Device, p.Mountpoint, p.Fstype}
+		ch <- prometheus.MustNewConstMetric(c.diskTotalDesc, prometheus.GaugeValue, float64(usage.Total), lbls...)
+		ch <- prometheus.MustNewConstMetric(c.diskUsedDesc, prometheus.GaugeValue, float64(usage.Used), lbls...)
+	}
 }
