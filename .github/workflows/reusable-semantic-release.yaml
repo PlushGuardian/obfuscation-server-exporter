@@ -3,6 +3,10 @@ name: Run Semantic Release
 on:
   workflow_call:
     inputs:
+      dry_run:
+        description: 'Run in dry‑run mode (no release published)'
+        type: boolean
+        default: false
       image:
         description: 'Docker image containing semantic-release'
         type: string
@@ -16,7 +20,10 @@ on:
         value: ${{ jobs.run-semantic-release.outputs.new_version }}
       release_published:
         description: 'Whether a new release was published in this run'
-        value: ${{ jobs.check-new-release.outputs.release_published }}
+        value: ${{ jobs.run-semantic-release.outputs.release_published }}
+      release_notes:
+        description: 'Release notes (only populated in dry‑run mode)'
+        value: ${{ jobs.run-semantic-release.outputs.release_notes }}
 
 jobs:
   run-semantic-release:
@@ -24,39 +31,74 @@ jobs:
     container:
       image: ${{ inputs.image }}
     outputs:
-      new_version: ${{ steps.get_version.outputs.version }}
+      new_version: ${{ steps.get_version.outputs.new_version }}
+      release_published: ${{ steps.get_release_status.outputs.release_published }}
+      release_notes: ${{ steps.get_release_notes.outputs.release_notes }}
     steps:
       - name: Checkout code (full history)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref }}
 
       - name: Mark workspace as Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      # ── Run semantic‑release (dry‑run or real) ──────
       - name: Run semantic-release
+        id: run_release
         env:
           GITHUB_TOKEN: ${{ secrets.gh_token }}
-        run: npx semantic-release
+        run: |
+          set +e
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            GITHUB_REF=${{ github.head_ref }}
+            npx semantic-release --no-ci --dry-run --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator --branches ${{ github.head_ref }} > output.txt
+            output=$(cat output.txt)
+          else
+            output=$(npx semantic-release 2>&1)
+          fi
+          exit_code=$?
+          set -e
+          echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
+          echo "$output" > semrel-output.txt
 
+      # ── Parse output ────────────────────────────────
       - name: Extract new version tag
         id: get_version
-        run: echo "version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
-
-  check-new-release:
-    needs: run-semantic-release
-    runs-on: ubuntu-latest
-    outputs:
-      new_version: ${{ needs.run-semantic-release.outputs.new_version }}
-      release_published: ${{ steps.set_flag.outputs.release_published }}
-    steps:
-      - name: Determine if a release was published
-        id: set_flag
         run: |
-          if [ -n "${{ needs.run-semantic-release.outputs.new_version }}" ]; then
+          if [ "${{ inputs.dry_run }}" = "false" ]; then
+            git fetch --tags
+            echo "new_version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+          else
+            echo "new_version=$(sed -n 's/.*Release note for version \([^[:space:]]*\).*/\1/p' semrel-output.txt)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract release published
+        id: get_release_status
+        run: |
+          if [ "${{ steps.run_release.outputs.exit_code }}" -eq 0 ]; then
             echo "release_published=true" >> $GITHUB_OUTPUT
-            echo "✅ A new release was published: ${{ needs.run-semantic-release.outputs.new_version }}"
           else
             echo "release_published=false" >> $GITHUB_OUTPUT
-            echo "⏭️ No new release – skipping downstream jobs"
           fi
+
+      - name: Extract release notes
+        if: inputs.dry_run == true
+        id: get_release_notes
+        run: |
+          output=$(cat semrel-output.txt)
+          notes=$(awk '/Release note for version/{flag=1; next} flag' semrel-output.txt)
+          echo "$notes" > release-notes.md
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat release-notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Debug all outputs
+        run: |
+          
+          echo "dry_run: ${{ inputs.dry_run }}"
+          echo "new_version: ${{ steps.get_version.outputs.new_version }}"
+          echo "release_published: ${{ steps.get_release_status.outputs.release_published }}"
+          echo "release_notes: ${{ steps.get_release_notes.outputs.release_notes }}"
+          cat semrel-output.txt
