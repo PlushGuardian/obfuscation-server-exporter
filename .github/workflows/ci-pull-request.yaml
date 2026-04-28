@@ -12,49 +12,48 @@ jobs:
     uses: ./.github/workflows/reusable-golangci-lint.yaml
 
   preview-new-release:
-    uses: ./.github/workflows/semantic-release.yml  # your reusable dry-run
+    uses: ./.github/workflows/reusable-semantic-release.yaml
     with:
       dry_run: true
     secrets:
-      github_token: ${{ secrets.GH_RELEASE_PAT }}
+      gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
-
-comment:
-  needs: preview-new-release
-  if: always()
-  runs-on: ubuntu-latest
-  steps:
-    - name: Post release preview as PR comment
-      uses: actions/github-script@v7
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const releaseNeeded = `${{ needs.preview.outputs.release_published }}`;
-          const nextVersion = `${{ needs.preview.outputs.next_version }}`;
-          const releaseNotes = `${{ needs.preview.outputs.release_notes }}`;
-
-          let body = '';
-
-          if (releaseNeeded === 'true') {
-            body = `## 🚀 Release Preview\n\n`
-                  + `**Next version:** \`${nextVersion}\`\n\n`
-                  + `<details><summary>📝 Generated release notes</summary>\n\n`
-                  + releaseNotes
-                  + `\n</details>`;
-          } else {
-            body = '## ⏭️ No release\n\nNo version bump would be triggered by this PR.';
-          }
-
-          // Find the pull request number
-          const pr = context.payload.pull_request;
-          if (!pr) {
-            core.warning('Not a pull request event, skipping comment.');
-            return;
-          }
-
-          await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: pr.number,
-            body
-          });
+  comment:
+    needs: preview-new-release
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post release preview as PR comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const releaseNeeded = `${{ needs.preview-new-release.outputs.release_published }}`;
+            const nextVersion = `${{ needs.preview-new-release.outputs.next_version }}`;
+            const releaseNotes = `${{ needs.previewnew-release.outputs.release_notes }}`;
+  
+            let body = '';
+  
+            if (releaseNeeded === 'true') {
+              body = `## 🚀 Release Preview\n\n`
+                    + `**Next version:** \`${nextVersion}\`\n\n`
+                    + `<details><summary>📝 Generated release notes</summary>\n\n`
+                    + releaseNotes
+                    + `\n</details>`;
+            } else {
+              body = '## ⏭️ No release\n\nNo version bump would be triggered by this PR.';
+            }
+  
+            // Find the pull request number
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.warning('Not a pull request event, skipping comment.');
+              return;
+            }
+  
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body
+            });

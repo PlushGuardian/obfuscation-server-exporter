@@ -70,7 +70,7 @@ jobs:
           fi
 
       - name: Extract release published
-        id: get_version
+        id: get_release_status
         run: |
           if [ "${{ steps.run_release.outputs.exit_code }}" -eq 0 ]; then
             echo "release_published=true" >> $GITHUB_OUTPUT
