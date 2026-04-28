@@ -12,14 +12,6 @@ jobs:
     secrets:
       gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
-  use-outputs:
-    needs: semantic
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo "Version: ${{ needs.semantic.outputs.new_version }}"
-          echo "Published: ${{ needs.semantic.outputs.release_published }}"
-
   docker-build-and-push:
     needs: semantic
     if: needs.semantic.outputs.release_published == 'true'
@@ -66,7 +58,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.semantic.outputs.new_version }}
           files: artifacts/*
