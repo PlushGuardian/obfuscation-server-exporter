@@ -31,7 +31,7 @@ jobs:
     container:
       image: ${{ inputs.image }}
     outputs:
-      new_version: ${{ steps.get_version.outputs.version }}
+      new_version: ${{ steps.get_version.outputs.new_version }}
       release_published: ${{ steps.get_release_status.outputs.release_published }}
       release_notes: ${{ steps.get_release_notes.outputs.release_notes }}
     steps:
@@ -85,9 +85,8 @@ jobs:
         id: get_release_notes
         run: |
           output=$(cat semrel-output.txt)
-          notes=$(echo "$output" | sed -n '/^#/,$p' || true)
-        
-          cat release-notes.md # TODO remove
+          notes=$(awk '/The next release version is/{flag=1; next} flag' semrel-output.txt)
+          echo "$notes" > release-notes.md
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           cat release-notes.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
