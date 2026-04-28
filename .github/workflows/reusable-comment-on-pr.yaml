@@ -20,17 +20,21 @@ on:
         required: true
 
 jobs:
-  upsert:
+  comment-on-pr:
     runs-on: ubuntu-latest
+    env:
+      COMMENT_BODY: ${{ inputs.body }}          
+      PR_NUMBER: ${{ inputs.pr_number }}
+      MARKER: ${{ inputs.marker }}
     steps:
       - name: Find, update, or create the comment
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.gh_token }}
           script: |
-            const body   = `${{ inputs.body }}`;
-            const prNum  = ${{ inputs.pr_number }};
-            const marker = '${{ inputs.marker }}';
+            const body   = process.env.COMMENT_BODY;
+            const prNum  = Number(process.env.PR_NUMBER);
+            const marker = process.env.MARKER;
 
             // Ensure the body contains the marker (prepend if missing)
             const finalBody = body.includes(marker) ? body : `${marker}\n${body}`;
