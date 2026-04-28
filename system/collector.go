@@ -2,6 +2,7 @@ package system
 
 import (
 	"log"
+	"sync"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/prometheus/client_golang/prometheus"
