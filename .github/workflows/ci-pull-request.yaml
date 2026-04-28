@@ -26,13 +26,27 @@ jobs:
       - name: Build comment body
         id: build
         run: |
-          if [ "${{ needs.preview-semantic-release.outputs.release_published }}" = "true" ]; then
-            content="## 🚀 Release Preview\n\n**Next version:** \`${{ needs.preview-semantic-release.outputs.new_version }}\`\n\n<details><summary>📝 Release notes</summary>\n\n${{ needs.preview-semantic-release.outputs.release_notes }}\n</details>"
-          else
-            content="## ⏭️ No release\n\nNo version bump will be triggered."
-          fi
+          marker='<!-- SEMANTIC-RELEASE-PREVIEW -->'
+          {
+            echo "$marker"
+            if [ "${{ needs.preview-semantic-release.outputs.release_published }}" = "true" ]; then
+              echo "## 🚀 Release Preview"
+              echo ""
+              echo "**Next version:** \`${{ needs.preview-semantic-release.outputs.new_version }}\`"
+              echo ""
+              echo "<details><summary>📝 Release notes</summary>"
+              echo ""
+              echo "${{ needs.preview-semantic-release.outputs.release_notes }}"
+              echo ""
+              echo "</details>"
+            else
+              echo "## ⏭️ No release"
+              echo ""
+              echo "No version bump would be triggered."
+            fi
+          } > comment-body.md
           echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "$content" >> $GITHUB_OUTPUT
+          cat comment-body.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
   comment:
@@ -45,45 +59,3 @@ jobs:
       marker: '<!-- SEMANTIC-RELEASE-PREVIEW -->'
     secrets:
       gh_token: ${{ secrets.GH_RELEASE_PAT }}
-
-
-
-  # comment:
-  #   needs: preview-new-release
-  #   if: always()
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Post release preview as PR comment
-  #       uses: actions/github-script@v7
-  #       with:
-  #         github-token: ${{ secrets.GITHUB_TOKEN }}
-  #         script: |
-  #           const releaseNeeded = `${{ needs.preview-new-release.outputs.release_published }}`;
-  #           const nextVersion = `${{ needs.preview-new-release.outputs.next_version }}`;
-  #           const releaseNotes = `${{ needs.preview-new-release.outputs.release_notes }}`;
-
-  #           let body = '';
-
-  #           if (releaseNeeded === 'true') {
-  #             body = `## 🚀 Release Preview\n\n`
-  #                   + `**Next version:** \`${nextVersion}\`\n\n`
-  #                   + `<details><summary>📝 Generated release notes</summary>\n\n`
-  #                   + releaseNotes
-  #                   + `\n</details>`;
-  #           } else {
-  #             body = '## ⏭️ No release\n\nNo version bump would be triggered by this PR.';
-  #           }
-
-  #           // Find the pull request number
-  #           const pr = context.payload.pull_request;
-  #           if (!pr) {
-  #             core.warning('Not a pull request event, skipping comment.');
-  #             return;
-  #           }
-
-  #           await github.rest.issues.createComment({
-  #             owner: context.repo.owner,
-  #             repo: context.repo.repo,
-  #             issue_number: pr.number,
-  #             body
-  #           });
