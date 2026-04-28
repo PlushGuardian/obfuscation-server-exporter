@@ -1,4 +1,4 @@
-name: Build OBFSExporter binaries
+name: Build multiarch binaries
 
 on:
   workflow_call:
@@ -7,6 +7,9 @@ on:
         required: true
         type: string
       commit_sha:
+        required: true
+        type: string
+      binary_name:
         required: true
         type: string
       architectures:
@@ -36,18 +39,18 @@ jobs:
           go build \
             -ldflags="-w -s -X main.version=${{ inputs.version }} -X main.commit=${{ inputs.commit_sha }}" \
             -trimpath \
-            -o obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+            -o ${{ binary_name }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
 
       - name: Archive binary
         run: |
           if [ "${{ matrix.os }}" = "windows" ]; then
-            zip obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.zip obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.exe
+            zip ${{ binary_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip ${{ binary_name }}-${{ matrix.os }}-${{ matrix.arch }}.exe
           else
-            tar -czf obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.tar.gz obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}
+            tar -czf ${{ binary_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ${{ binary_name }}-${{ matrix.os }}-${{ matrix.arch }}
           fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}
-          path: obfs-exporter-${{ matrix.os }}-${{ matrix.arch }}.*
+          name: ${{ binary_name }}-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ binary_name }}-${{ matrix.os }}-${{ matrix.arch }}.*

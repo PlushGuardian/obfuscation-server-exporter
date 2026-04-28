@@ -12,6 +12,9 @@ on:
       architectures:
         required: false
         type: string
+      dockerhub_repository:
+        required: true
+        type: string
     secrets:
       dockerhub_username:
         required: true
@@ -34,7 +37,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.dockerhub_username }}/obfs-exporter
+          images: ${{ secrets.dockerhub_username }}/${{ inputs.dockerhub_repository }}
           tags: |
             type=semver,pattern={{version}},value=${{ inputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}

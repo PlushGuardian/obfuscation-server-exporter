@@ -1,0 +1,11 @@
+name: Pull request
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  golangci-lint:
+    uses: ./.github/workflows/reusable-golangci-lint.yaml
