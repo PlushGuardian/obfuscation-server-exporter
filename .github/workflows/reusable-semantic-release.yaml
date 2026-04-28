@@ -52,16 +52,9 @@ jobs:
         run: |
           set +e
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            # git fetch origin main --depth=50
-            # git checkout -B main origin/main
-            # git merge ${{ github.event.pull_request.head.sha }} --no-edit
-            # # Remove CI detection so semantic-release doesn't bail
-            # unset GITHUB_ACTIONS
-            # unset GITHUB_EVENT_NAME
-            # output="$(sh -c "npx semantic-release --dry-run --no-ci --branches '${GITHUB_HEAD_REF:-main}'")"
             GITHUB_REF=${{ github.head_ref }}
             npx semantic-release --no-ci --dry-run --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator --branches ${{ github.head_ref }} > output.txt
-            output=$(cat output.txt | base64 -w 0)
+            output=$(cat output.txt)
           else
             output=$(npx semantic-release 2>&1)
           fi
@@ -78,7 +71,7 @@ jobs:
             git fetch --tags
             echo "new_version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
           else
-            echo "new_version=$(sed -n 's/.*The next release version is \([^[:space:]]*\).*/\1/p' semrel-output.txt)" >> $GITHUB_OUTPUT
+            echo "new_version=$(sed -n 's/.*Release note for version \([^[:space:]]*\).*/\1/p' semrel-output.txt)" >> $GITHUB_OUTPUT
           fi
 
       - name: Extract release published
@@ -95,7 +88,7 @@ jobs:
         id: get_release_notes
         run: |
           output=$(cat semrel-output.txt)
-          notes=$(awk '/The next release version is/{flag=1; next} flag' semrel-output.txt)
+          notes=$(awk '/Release note for version/{flag=1; next} flag' semrel-output.txt)
           echo "$notes" > release-notes.md
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           cat release-notes.md >> $GITHUB_OUTPUT
