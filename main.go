@@ -18,12 +18,17 @@ import (
 )
 
 func main() {
+	// ---------- Create loggers -------------
 	file, err := os.OpenFile("/var/log/obfuscation-server-exporter.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	// ---------- 1. CLI flags (pflag) ----------
+	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
+	systemLogger := log.New(file, "[system] ", log.LstdFlags)
+	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
+
+	// ---------- CLI flags (pflag) ----------
 	pflag.String("config-file", "", "Path to YAML configuration file")
 	pflag.String("metrics-ip", "", "IP to listen on")
 	pflag.String("metrics-port", "", "Port to listen on")
@@ -37,46 +42,41 @@ func main() {
 	pflag.Bool("insecure-skip-verify", false, "Skip TLS verification")
 	pflag.Parse()
 
-	// ---------- 2. Bind pflags to Viper ----------
+	// ---------- Bind pflags to Viper ----------
 	viper.BindPFlags(pflag.CommandLine)
 
-	// ---------- 3. Environment variables ----------
+	// ---------- Environment variables ----------
 	// VIper automatically binds env vars: e.g. METRICS_IP -> metrics-ip
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
-	// ---------- 4. Config file (YAML) ----------
+	// ---------- Config file (YAML) ----------
 	if cfgFile := viper.GetString("config-file"); cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 		if err := viper.ReadInConfig(); err != nil {
-			log.Fatalf("failed to read config file: %v", err)
+			obfsExporterLogger.Fatalf("failed to read config file: %v", err)
 		}
 	}
 
-	// ---------- 5. Set defaults ----------
+	// ---------- Set defaults ----------
 	viper.SetDefault("obfsexporter.address", "localhost")
 	viper.SetDefault("obfsexporter.port", "9100")
 	viper.SetDefault("obfsexporter.scrape_timeout", 30)
 	viper.SetDefault("threexui.timeout", 15)
 	viper.SetDefault("threexui.clients_bytes_rows", 0)
 
-	// ---------- 6. Unmarshal into typed config ----------
+	// ---------- Unmarshal into typed config ----------
 	var cfg config.Config
 	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatalf("failed to unmarshal config: %v", err)
+		obfsExporterLogger.Fatalf("failed to unmarshal config: %v", err)
 	}
 
-	// ---------- 7. Validation (optional) ----------
+	// ---------- Validation (optional) ----------
 	if cfg.ThreeXUI.PanelPath == "" {
-		log.Fatal("threexui.panel_path is required (set via YAML, --panel-path, or PANEL_PATH)")
+		obfsExporterLogger.Fatal("threexui.panel_path is required (set via YAML, --panel-path, or PANEL_PATH)")
 	}
 
-	// ---------- 8. Create loggers (tagged) ----------
-	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
-	systemLogger := log.New(file, "[system] ", log.LstdFlags)
-	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
-
-	// ---------- 9. Build collectors from config ----------
+	// ---------- Build collectors from config ----------
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(threexui.NewCollector(config.ThreeXUIConfig{
 		PanelPort:          cfg.ThreeXUI.PanelPort,
@@ -89,7 +89,7 @@ func main() {
 	}, threeXUILogger))
 	reg.MustRegister(system.NewCollector(config.SystemConfig{}, systemLogger))
 
-	// ---------- 10. HTTP handler ----------
+	// ---------- HTTP handler ----------
 	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
 		Timeout: time.Duration(cfg.OBFSExporter.ScrapeTimeout) * time.Second,
 	})

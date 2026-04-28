@@ -7,7 +7,7 @@ import (
 
 type Config struct {
 	OBFSExporter OBFSExporterConfig `mapstructure:"obfsexporter"`
-	system       SystemConfig       `mapstructure:"system"`
+	System       SystemConfig       `mapstructure:"system"`
 	ThreeXUI     ThreeXUIConfig     `mapstructure:"threexui"`
 }
 
