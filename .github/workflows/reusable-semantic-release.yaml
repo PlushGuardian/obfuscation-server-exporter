@@ -51,7 +51,9 @@ jobs:
         run: |
           set +e
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            output="$(bash -c "unset GITHUB_ACTIONS && npx semantic-release --dry-run --no-ci --branches '${HEAD_REF}'")"
+            unset GITHUB_ACTIONS
+            unset GITHUB_EVENT_NAME          
+            output="$(semantic-release --dry-run --no-ci --branches $GITHUB_HEAD_REF)"
           else
             output=$(npx semantic-release 2>&1)
           fi
