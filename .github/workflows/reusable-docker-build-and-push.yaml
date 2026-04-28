@@ -37,7 +37,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.dockerhub_username }}/${{ inputs.dockerhub_repository}}
+          images: ${{ secrets.dockerhub_username }}/${{ inputs.dockerhub_repository }}
           tags: |
             type=semver,pattern={{version}},value=${{ inputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
