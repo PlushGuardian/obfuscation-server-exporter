@@ -45,6 +45,18 @@ func newClient(cfg config.ThreeXUIConfig, logger *log.Logger) *threeXUIClient {
 	}
 }
 
+func drainAndClose(resp *http.Response, logger *log.Logger) {
+	if resp == nil || resp.Body == nil {
+		return
+	}
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if err := resp.Body.Close(); err != nil {
+		if logger != nil {
+			logger.Printf("error closing response body: %v", err)
+		}
+	}
+}
+
 func (c *threeXUIClient) getAuthToken() (*http.Cookie, error) {
 	c.cookieMu.Lock()
 	defer c.cookieMu.Unlock()
@@ -71,7 +83,7 @@ func (c *threeXUIClient) getAuthToken() (*http.Cookie, error) {
 		c.logger.Printf("3x-ui: login request failed: %v", err)
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer drainAndClose(resp, c.logger)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -117,7 +129,7 @@ func (c *threeXUIClient) do(method, path string, cookie *http.Cookie) ([]byte, e
 		c.logger.Printf("3x-ui: %s %s request failed: %v", method, path, err)
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer drainAndClose(resp, c.logger)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

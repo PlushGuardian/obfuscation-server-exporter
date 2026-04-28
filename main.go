@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
 	systemLogger := log.New(file, "[system] ", log.LstdFlags)
 	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
@@ -43,7 +43,9 @@ func main() {
 	pflag.Parse()
 
 	// ---------- Bind pflags to Viper ----------
-	viper.BindPFlags(pflag.CommandLine)
+	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+		obfsExporterLogger.Fatalf("failed to bind pflags: %v", err)
+	}
 
 	// ---------- Environment variables ----------
 	// VIper automatically binds env vars: e.g. METRICS_IP -> metrics-ip

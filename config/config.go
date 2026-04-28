@@ -7,8 +7,9 @@ import (
 
 type Config struct {
 	OBFSExporter OBFSExporterConfig `mapstructure:"obfsexporter"`
-	System       SystemConfig       `mapstructure:"system"`
-	ThreeXUI     ThreeXUIConfig     `mapstructure:"threexui"`
+	//nolint:unused
+	System   SystemConfig   `mapstructure:"system"`
+	ThreeXUI ThreeXUIConfig `mapstructure:"threexui"`
 }
 
 type OBFSExporterConfig struct {
