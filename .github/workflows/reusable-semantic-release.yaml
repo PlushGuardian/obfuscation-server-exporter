@@ -56,9 +56,12 @@ jobs:
             # git checkout -B main origin/main
             # git merge ${{ github.event.pull_request.head.sha }} --no-edit
             # # Remove CI detection so semantic-release doesn't bail
-            unset GITHUB_ACTIONS
-            unset GITHUB_EVENT_NAME
-            output="$(sh -c "npx semantic-release --dry-run --no-ci --branches '${GITHUB_HEAD_REF:-main}'")"
+            # unset GITHUB_ACTIONS
+            # unset GITHUB_EVENT_NAME
+            # output="$(sh -c "npx semantic-release --dry-run --no-ci --branches '${GITHUB_HEAD_REF:-main}'")"
+            GITHUB_REF=${{ github.head_ref }}
+            npx semantic-release --no-ci --dry-run --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator --branches ${{ github.head_ref }} > output.txt
+            output=$(cat output.txt | base64 -w 0)
           else
             output=$(npx semantic-release 2>&1)
           fi
