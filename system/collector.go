@@ -5,7 +5,7 @@ import (
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/prometheus/client_golang/prometheus"
-	// "github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/cpu"
 	// "github.com/shirou/gopsutil/v3/disk"
 	// "github.com/shirou/gopsutil/v3/host"
 	// "github.com/shirou/gopsutil/v3/load"
@@ -20,6 +20,13 @@ type System struct {
 	usedMemoryDesc  *prometheus.Desc
 	swapTotalDesc   *prometheus.Desc
 	swapUsedDesc    *prometheus.Desc
+
+	// CPU & load
+	cpuUsageDesc *prometheus.Desc
+
+	// CPU state for delta calculation
+	lastCPUTimes *cpu.TimesStat
+	mu           sync.Mutex
 
 	logger *log.Logger
 }
@@ -47,6 +54,11 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			"Used swap space in bytes",
 			nil, nil,
 		),
+		cpuUsageDesc: prometheus.NewDesc(
+			"system_cpu_usage_percent",
+			"Current overall CPU usage as a percentage (0-100)",
+			nil, nil,
+		),
 		logger: logger,
 	}
 }
@@ -57,11 +69,15 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.usedMemoryDesc
 	ch <- c.swapTotalDesc
 	ch <- c.swapUsedDesc
+
+	ch <- c.cpuUsageDesc
+
 }
 
 func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectMemory(ch)
 	c.collectSwap(ch)
+	c.collectCPU(ch)
 }
 
 func (c *System) collectMemory(ch chan<- prometheus.Metric) {
@@ -82,4 +98,32 @@ func (c *System) collectSwap(ch chan<- prometheus.Metric) {
 	}
 	ch <- prometheus.MustNewConstMetric(c.swapTotalDesc, prometheus.GaugeValue, float64(s.Total))
 	ch <- prometheus.MustNewConstMetric(c.swapUsedDesc, prometheus.GaugeValue, float64(s.Used))
+}
+
+func (c *System) collectCPU(ch chan<- prometheus.Metric) {
+	times, err := cpu.Times(false) // overall, no per-CPU breakdown
+	if err != nil {
+		c.logger.Printf("error collecting CPU times: %v", err)
+		return
+	}
+	if len(times) == 0 {
+		return
+	}
+	curr := times[0]
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.lastCPUTimes != nil {
+		totalDelta := (curr.User + curr.System + curr.Idle + curr.Nice + curr.Iowait +
+			curr.Irq + curr.Softirq + curr.Steal + curr.Guest + curr.GuestNice) -
+			(c.lastCPUTimes.User + c.lastCPUTimes.System + c.lastCPUTimes.Idle + c.lastCPUTimes.Nice +
+				c.lastCPUTimes.Iowait + c.lastCPUTimes.Irq + c.lastCPUTimes.Softirq + c.lastCPUTimes.Steal +
+				c.lastCPUTimes.Guest + c.lastCPUTimes.GuestNice)
+		idleDelta := (curr.Idle + curr.Iowait) - (c.lastCPUTimes.Idle + c.lastCPUTimes.Iowait)
+		if totalDelta > 0 {
+			usage := (totalDelta - idleDelta) / totalDelta * 100.0
+			ch <- prometheus.MustNewConstMetric(c.cpuUsageDesc, prometheus.GaugeValue, usage)
+		}
+	}
+	c.lastCPUTimes = &curr
 }
