@@ -26,14 +26,14 @@ jobs:
       - name: Post release preview as PR comment
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_RELEASE_PAT }}
           script: |
             const releaseNeeded = `${{ needs.preview-new-release.outputs.release_published }}`;
             const nextVersion = `${{ needs.preview-new-release.outputs.next_version }}`;
-            const releaseNotes = `${{ needs.previewnew-release.outputs.release_notes }}`;
-  
+            const releaseNotes = `${{ needs.preview-new-release.outputs.release_notes }}`;
+
             let body = '';
-  
+
             if (releaseNeeded === 'true') {
               body = `## 🚀 Release Preview\n\n`
                     + `**Next version:** \`${nextVersion}\`\n\n`
@@ -43,14 +43,14 @@ jobs:
             } else {
               body = '## ⏭️ No release\n\nNo version bump would be triggered by this PR.';
             }
-  
+
             // Find the pull request number
             const pr = context.payload.pull_request;
             if (!pr) {
               core.warning('Not a pull request event, skipping comment.');
               return;
             }
-  
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
