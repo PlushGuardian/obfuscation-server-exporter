@@ -11,7 +11,7 @@ jobs:
     uses: ./.github/workflows/reusable-golangci-lint.yaml
 
   preview-new-release:
-    uses: ./.github/workflows/semantic-release.yml  # your reusable dry-run
+    uses: ./.github/workflows/reusable-semantic-release.yaml
     with:
       dry_run: true
     secrets:
