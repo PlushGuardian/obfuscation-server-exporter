@@ -93,6 +93,8 @@ jobs:
 
       - name: Debug all outputs
         run: |
-          echo "new_version: ${{ steps.get_version.outputs.version }}"
+          
+          echo "dry_run: ${{ inputs.dry_run }}"
+          echo "new_version: ${{ steps.get_version.outputs.new_version }}"
           echo "release_published: ${{ steps.get_release_status.outputs.release_published }}"
           echo "release_notes: ${{ steps.get_release_notes.outputs.release_notes }}"
