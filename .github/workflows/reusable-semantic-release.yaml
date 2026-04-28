@@ -51,10 +51,16 @@ jobs:
         run: |
           set +e
           if [ "${{ inputs.dry_run }}" = "true" ]; then
+            export GITHUB_EVENT_NAME="push"
+            export GITHUB_REF="refs/heads/main"
+          fi
+      
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
             output=$(npx semantic-release --dry-run 2>&1)
           else
             output=$(npx semantic-release 2>&1)
           fi
+          
           exit_code=$?
           set -e
           echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
@@ -81,7 +87,7 @@ jobs:
           fi
 
       - name: Extract release notes
-        # if: inputs.dry_run == 'true'
+        if: inputs.dry_run == true
         id: get_release_notes
         run: |
           output=$(cat semrel-output.txt)
