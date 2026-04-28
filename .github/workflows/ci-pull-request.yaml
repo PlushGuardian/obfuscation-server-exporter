@@ -38,7 +38,7 @@ jobs:
   comment:
     needs: build-body
     if: always()
-    uses: ./.github/workflows/reusable-comment-on-pr.yml
+    uses: ./.github/workflows/reusable-comment-on-pr.yaml
     with:
       body: ${{ needs.build-body.outputs.comment_body }}
       pr_number: ${{ github.event.pull_request.number }}
