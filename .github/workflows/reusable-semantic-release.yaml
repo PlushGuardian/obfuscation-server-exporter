@@ -66,7 +66,7 @@ jobs:
             git fetch --tags
             echo "new_version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
           else
-            new_version=$(cat semrel-output.txt | grep -oP 'The next release version is \K\S+' || echo '')
+            version=$(sed -n 's/.*The next release version is \([^[:space:]]*\).*/\1/p' semrel-output.txt)
           fi
 
       - name: Extract release published
