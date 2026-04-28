@@ -81,7 +81,7 @@ jobs:
           fi
 
       - name: Extract release notes
-        if: inputs.dry_run == 'true'
+        # if: inputs.dry_run == 'true'
         id: get_release_notes
         run: |
           output=$(cat semrel-output.txt)
@@ -98,3 +98,4 @@ jobs:
           echo "new_version: ${{ steps.get_version.outputs.new_version }}"
           echo "release_published: ${{ steps.get_release_status.outputs.release_published }}"
           echo "release_notes: ${{ steps.get_release_notes.outputs.release_notes }}"
+          cat semrel-output.txt
