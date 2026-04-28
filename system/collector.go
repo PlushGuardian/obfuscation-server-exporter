@@ -7,9 +7,10 @@ import (
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/shirou/gopsutil/v3/cpu"
+
 	// "github.com/shirou/gopsutil/v3/disk"
 	// "github.com/shirou/gopsutil/v3/host"
-	// "github.com/shirou/gopsutil/v3/load"
+	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 	// "github.com/shirou/gopsutil/v3/net"
 )
@@ -22,8 +23,11 @@ type System struct {
 	swapTotalDesc   *prometheus.Desc
 	swapUsedDesc    *prometheus.Desc
 
-	// CPU & load
+	// CPU & load average
 	cpuUsageDesc *prometheus.Desc
+	load1Desc    *prometheus.Desc
+	load5Desc    *prometheus.Desc
+	load15Desc   *prometheus.Desc
 
 	// CPU state for delta calculation
 	lastCPUTimes *cpu.TimesStat
@@ -60,6 +64,21 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			"Current overall CPU usage as a percentage (0-100)",
 			nil, nil,
 		),
+		load1Desc: prometheus.NewDesc(
+			"system_load1",
+			"1-minute load average",
+			nil, nil,
+		),
+		load5Desc: prometheus.NewDesc(
+			"system_load5",
+			"5-minute load average",
+			nil, nil,
+		),
+		load15Desc: prometheus.NewDesc(
+			"system_load15",
+			"15-minute load average",
+			nil, nil,
+		),
 		logger: logger,
 	}
 }
@@ -71,7 +90,11 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.swapTotalDesc
 	ch <- c.swapUsedDesc
 
+	// CPU & load average
 	ch <- c.cpuUsageDesc
+	ch <- c.load1Desc
+	ch <- c.load5Desc
+	ch <- c.load15Desc
 
 }
 
@@ -79,6 +102,7 @@ func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectMemory(ch)
 	c.collectSwap(ch)
 	c.collectCPU(ch)
+	c.collectLoad(ch)
 }
 
 func (c *System) collectMemory(ch chan<- prometheus.Metric) {
@@ -127,4 +151,15 @@ func (c *System) collectCPU(ch chan<- prometheus.Metric) {
 		}
 	}
 	c.lastCPUTimes = &curr
+}
+
+func (c *System) collectLoad(ch chan<- prometheus.Metric) {
+	lavg, err := load.Avg()
+	if err != nil {
+		c.logger.Printf("error collecting load average: %v", err)
+		return
+	}
+	ch <- prometheus.MustNewConstMetric(c.load1Desc, prometheus.GaugeValue, lavg.Load1)
+	ch <- prometheus.MustNewConstMetric(c.load5Desc, prometheus.GaugeValue, lavg.Load5)
+	ch <- prometheus.MustNewConstMetric(c.load15Desc, prometheus.GaugeValue, lavg.Load15)
 }
