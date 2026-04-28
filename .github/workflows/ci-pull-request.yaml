@@ -12,49 +12,80 @@ jobs:
   golangci-lint:
     uses: ./.github/workflows/reusable-golangci-lint.yaml
 
-  preview-new-release:
+  preview-semantic-release:
     uses: ./.github/workflows/reusable-semantic-release.yaml
     with:
       dry_run: true
     secrets:
       gh_token: ${{ secrets.GH_RELEASE_PAT }}
 
-  comment:
-    needs: preview-new-release
-    if: always()
+  build-body:
+    needs: preview-semantic-release
     runs-on: ubuntu-latest
+    outputs:
+      comment_body: ${{ steps.build.outputs.body }}
     steps:
-      - name: Post release preview as PR comment
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const releaseNeeded = `${{ needs.preview-new-release.outputs.release_published }}`;
-            const nextVersion = `${{ needs.preview-new-release.outputs.next_version }}`;
-            const releaseNotes = `${{ needs.preview-new-release.outputs.release_notes }}`;
+      - name: Build comment body
+        id: build
+        run: |
+          if [ "${{ needs.preview-semantic-release.outputs.release_published }}" = "true" ]; then
+            content="## 🚀 Release Preview\n\n**Next version:** \`${{ needs.preview-semantic-release.outputs.new_version }}\`\n\n<details><summary>📝 Release notes</summary>\n\n${{ needs.preview-semantic-release.outputs.release_notes }}\n</details>"
+          else
+            content="## ⏭️ No release\n\nNo version bump will be triggered."
+          fi
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$content" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-            let body = '';
+  comment:
+    needs: build-body
+    if: always()
+    uses: ./.github/workflows/reusable-comment-on-pr.yml
+    with:
+      body: ${{ needs.build-body.outputs.comment_body }}
+      pr_number: ${{ github.event.pull_request.number }}
+      marker: '<!-- SEMANTIC-RELEASE-PREVIEW -->'
+    secrets:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
 
-            if (releaseNeeded === 'true') {
-              body = `## 🚀 Release Preview\n\n`
-                    + `**Next version:** \`${nextVersion}\`\n\n`
-                    + `<details><summary>📝 Generated release notes</summary>\n\n`
-                    + releaseNotes
-                    + `\n</details>`;
-            } else {
-              body = '## ⏭️ No release\n\nNo version bump would be triggered by this PR.';
-            }
 
-            // Find the pull request number
-            const pr = context.payload.pull_request;
-            if (!pr) {
-              core.warning('Not a pull request event, skipping comment.');
-              return;
-            }
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              body
-            });
+  # comment:
+  #   needs: preview-new-release
+  #   if: always()
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Post release preview as PR comment
+  #       uses: actions/github-script@v7
+  #       with:
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #         script: |
+  #           const releaseNeeded = `${{ needs.preview-new-release.outputs.release_published }}`;
+  #           const nextVersion = `${{ needs.preview-new-release.outputs.next_version }}`;
+  #           const releaseNotes = `${{ needs.preview-new-release.outputs.release_notes }}`;
+
+  #           let body = '';
+
+  #           if (releaseNeeded === 'true') {
+  #             body = `## 🚀 Release Preview\n\n`
+  #                   + `**Next version:** \`${nextVersion}\`\n\n`
+  #                   + `<details><summary>📝 Generated release notes</summary>\n\n`
+  #                   + releaseNotes
+  #                   + `\n</details>`;
+  #           } else {
+  #             body = '## ⏭️ No release\n\nNo version bump would be triggered by this PR.';
+  #           }
+
+  #           // Find the pull request number
+  #           const pr = context.payload.pull_request;
+  #           if (!pr) {
+  #             core.warning('Not a pull request event, skipping comment.');
+  #             return;
+  #           }
+
+  #           await github.rest.issues.createComment({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             issue_number: pr.number,
+  #             body
+  #           });
