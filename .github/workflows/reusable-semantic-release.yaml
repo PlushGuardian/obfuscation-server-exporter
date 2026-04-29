@@ -53,10 +53,8 @@ jobs:
           set +e
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             GITHUB_REF=${{ github.head_ref }}
-            npx semantic-release --no-ci --dry-run --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator --branches ${{ github.head_ref }} > output.txt
-            set -e
-            echo "$output" > semrel-output.txt
-            output=$(cat output.txt)
+            npx semantic-release --no-ci --dry-run --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator --branches ${{ github.head_ref }} > semrel-output.txt
+            cat semrel-output.txt
           else
             npx semantic-release 2>&1
           fi
