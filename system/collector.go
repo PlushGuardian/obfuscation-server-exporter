@@ -12,7 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
-	// "github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v3/net"
 )
 
 // System collects a single system metric.
@@ -35,6 +35,16 @@ type System struct {
 
 	// Uptime
 	uptimeDesc *prometheus.Desc
+
+	// Network metrics aggregated to all interfaces
+	netAggRecvBytesDesc *prometheus.Desc
+	netAggSentBytesDesc *prometheus.Desc
+	netAggRecvPktsDesc  *prometheus.Desc
+	netAggSentPktsDesc  *prometheus.Desc
+	netAggRecvErrsDesc  *prometheus.Desc
+	netAggSentErrsDesc  *prometheus.Desc
+	netAggRecvDropDesc  *prometheus.Desc
+	netAggSentDropDesc  *prometheus.Desc
 
 	// CPU state for delta calculation
 	lastCPUTimes *cpu.TimesStat
@@ -105,6 +115,47 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			nil, nil,
 		),
 
+		netAggRecvBytesDesc: prometheus.NewDesc(
+			"system_network_receive_bytes_total",
+			"Cumulative received bytes (all interfaces)",
+			nil, nil,
+		),
+		netAggSentBytesDesc: prometheus.NewDesc(
+			"system_network_transmit_bytes_total",
+			"Cumulative transmitted bytes (all interfaces)",
+			nil, nil,
+		),
+		netAggRecvPktsDesc: prometheus.NewDesc(
+			"system_network_receive_packets_total",
+			"Cumulative received packets (all interfaces)",
+			nil, nil,
+		),
+		netAggSentPktsDesc: prometheus.NewDesc(
+			"system_network_transmit_packets_total",
+			"Cumulative transmitted packets (all interfaces)",
+			nil, nil,
+		),
+		netAggRecvErrsDesc: prometheus.NewDesc(
+			"system_network_receive_errors_total",
+			"Cumulative receive errors (all interfaces)",
+			nil, nil,
+		),
+		netAggSentErrsDesc: prometheus.NewDesc(
+			"system_network_transmit_errors_total",
+			"Cumulative transmit errors (all interfaces)",
+			nil, nil,
+		),
+		netAggRecvDropDesc: prometheus.NewDesc(
+			"system_network_receive_dropped_total",
+			"Cumulative receive drops (all interfaces)",
+			nil, nil,
+		),
+		netAggSentDropDesc: prometheus.NewDesc(
+			"system_network_transmit_dropped_total",
+			"Cumulative transmit drops (all interfaces)",
+			nil, nil,
+		),
+
 		logger: logger,
 	}
 }
@@ -128,6 +179,16 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 
 	// Uptime
 	ch <- c.uptimeDesc
+
+	// Network aggregated
+	ch <- c.netAggRecvBytesDesc
+	ch <- c.netAggSentBytesDesc
+	ch <- c.netAggRecvPktsDesc
+	ch <- c.netAggSentPktsDesc
+	ch <- c.netAggRecvErrsDesc
+	ch <- c.netAggSentErrsDesc
+	ch <- c.netAggRecvDropDesc
+	ch <- c.netAggSentDropDesc
 }
 
 func (c *System) Collect(ch chan<- prometheus.Metric) {
@@ -137,7 +198,10 @@ func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectLoad(ch)
 	c.collectDisk(ch)
 	c.collectUptime(ch)
+	c.collectNetworkAggregated(ch)
 }
+
+// === Helpers ===========================================
 
 func (c *System) collectMemory(ch chan<- prometheus.Metric) {
 	v, err := mem.VirtualMemory()
@@ -223,4 +287,25 @@ func (c *System) collectUptime(ch chan<- prometheus.Metric) {
 		return
 	}
 	ch <- prometheus.MustNewConstMetric(c.uptimeDesc, prometheus.GaugeValue, float64(upt))
+}
+
+// collectNetworkAggregated exposes overall interface counters (sum of all NICs).
+func (c *System) collectNetworkAggregated(ch chan<- prometheus.Metric) {
+	agg, err := net.IOCounters(false) // false = aggregate of all interfaces
+	if err != nil {
+		c.logger.Printf("error collecting aggregated network stats: %v", err)
+		return
+	}
+	if len(agg) != 1 {
+		return
+	}
+	a := agg[0]
+	ch <- prometheus.MustNewConstMetric(c.netAggRecvBytesDesc, prometheus.CounterValue, float64(a.BytesRecv))
+	ch <- prometheus.MustNewConstMetric(c.netAggSentBytesDesc, prometheus.CounterValue, float64(a.BytesSent))
+	ch <- prometheus.MustNewConstMetric(c.netAggRecvPktsDesc, prometheus.CounterValue, float64(a.PacketsRecv))
+	ch <- prometheus.MustNewConstMetric(c.netAggSentPktsDesc, prometheus.CounterValue, float64(a.PacketsSent))
+	ch <- prometheus.MustNewConstMetric(c.netAggRecvErrsDesc, prometheus.CounterValue, float64(a.Errin))
+	ch <- prometheus.MustNewConstMetric(c.netAggSentErrsDesc, prometheus.CounterValue, float64(a.Errout))
+	ch <- prometheus.MustNewConstMetric(c.netAggRecvDropDesc, prometheus.CounterValue, float64(a.Dropin))
+	ch <- prometheus.MustNewConstMetric(c.netAggSentDropDesc, prometheus.CounterValue, float64(a.Dropout))
 }
