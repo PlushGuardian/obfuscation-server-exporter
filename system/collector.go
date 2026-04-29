@@ -9,7 +9,7 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 
 	"github.com/shirou/gopsutil/v3/disk"
-	// "github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 	// "github.com/shirou/gopsutil/v3/net"
@@ -32,6 +32,9 @@ type System struct {
 	// Disk
 	diskTotalDesc *prometheus.Desc
 	diskUsedDesc  *prometheus.Desc
+
+	// Uptime
+	uptimeDesc *prometheus.Desc
 
 	// CPU state for delta calculation
 	lastCPUTimes *cpu.TimesStat
@@ -96,6 +99,12 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			[]string{"device", "mountpoint", "fstype"}, nil,
 		),
 
+		uptimeDesc: prometheus.NewDesc(
+			"system_uptime_seconds",
+			"System uptime in seconds",
+			nil, nil,
+		),
+
 		logger: logger,
 	}
 }
@@ -117,6 +126,8 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.diskTotalDesc
 	ch <- c.diskUsedDesc
 
+	// Uptime
+	ch <- c.uptimeDesc
 }
 
 func (c *System) Collect(ch chan<- prometheus.Metric) {
@@ -125,6 +136,7 @@ func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectCPU(ch)
 	c.collectLoad(ch)
 	c.collectDisk(ch)
+	c.collectUptime(ch)
 }
 
 func (c *System) collectMemory(ch chan<- prometheus.Metric) {
@@ -202,4 +214,13 @@ func (c *System) collectDisk(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.diskTotalDesc, prometheus.GaugeValue, float64(usage.Total), lbls...)
 		ch <- prometheus.MustNewConstMetric(c.diskUsedDesc, prometheus.GaugeValue, float64(usage.Used), lbls...)
 	}
+}
+
+func (c *System) collectUptime(ch chan<- prometheus.Metric) {
+	upt, err := host.Uptime()
+	if err != nil {
+		c.logger.Printf("error collecting uptime: %v", err)
+		return
+	}
+	ch <- prometheus.MustNewConstMetric(c.uptimeDesc, prometheus.GaugeValue, float64(upt))
 }
