@@ -1,3 +1,12 @@
+## [2.2.1](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.2.0...v2.2.1) (2026-04-29)
+
+## fix
+
+
+* fix: add proper automated notes
+
+* fix changelog.md
+
 ## [2.2.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.1.2...v2.2.0) (2026-04-29)
 
 ### ◈ Features
