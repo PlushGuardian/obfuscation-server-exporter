@@ -26,8 +26,8 @@ jobs:
           {"os":"linux","arch":"arm64"},
           {"os":"linux","arch":"arm","goarm":"7"}
         ]
-    secrets:
       dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+    secrets:
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   binaries:
