@@ -55,12 +55,12 @@ jobs:
             npx semantic-release --no-ci --dry-run \
               --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator \
               --branches ${{ github.head_ref }} > semrel-output.txt
+              cat semrel-output.txt
           else
-            npx semantic-release > semrel-output.txt
+            npx semantic-release
           fi
           exit_code=$?
           set -e
-          cat semrel-output.txt         # show the output in the logs
           echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
         shell: sh
 
