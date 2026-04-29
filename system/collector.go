@@ -46,6 +46,16 @@ type System struct {
 	netAggRecvDropDesc  *prometheus.Desc
 	netAggSentDropDesc  *prometheus.Desc
 
+	// Network – per interface (device label)
+	netIfRecvBytesDesc *prometheus.Desc
+	netIfSentBytesDesc *prometheus.Desc
+	netIfRecvPktsDesc  *prometheus.Desc
+	netIfSentPktsDesc  *prometheus.Desc
+	netIfRecvErrsDesc  *prometheus.Desc
+	netIfSentErrsDesc  *prometheus.Desc
+	netIfRecvDropDesc  *prometheus.Desc
+	netIfSentDropDesc  *prometheus.Desc
+
 	// CPU state for delta calculation
 	lastCPUTimes *cpu.TimesStat
 	mu           sync.Mutex
@@ -156,6 +166,47 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			nil, nil,
 		),
 
+		netIfRecvBytesDesc: prometheus.NewDesc(
+			"system_network_interface_receive_bytes_total",
+			"Cumulative received bytes per interface",
+			[]string{"device"}, nil,
+		),
+		netIfSentBytesDesc: prometheus.NewDesc(
+			"system_network_interface_transmit_bytes_total",
+			"Cumulative transmitted bytes per interface",
+			[]string{"device"}, nil,
+		),
+		netIfRecvPktsDesc: prometheus.NewDesc(
+			"system_network_interface_receive_packets_total",
+			"Cumulative received packets per interface",
+			[]string{"device"}, nil,
+		),
+		netIfSentPktsDesc: prometheus.NewDesc(
+			"system_network_interface_transmit_packets_total",
+			"Cumulative transmitted packets per interface",
+			[]string{"device"}, nil,
+		),
+		netIfRecvErrsDesc: prometheus.NewDesc(
+			"system_network_interface_receive_errors_total",
+			"Cumulative receive errors per interface",
+			[]string{"device"}, nil,
+		),
+		netIfSentErrsDesc: prometheus.NewDesc(
+			"system_network_interface_transmit_errors_total",
+			"Cumulative transmit errors per interface",
+			[]string{"device"}, nil,
+		),
+		netIfRecvDropDesc: prometheus.NewDesc(
+			"system_network_interface_receive_dropped_total",
+			"Cumulative receive drops per interface",
+			[]string{"device"}, nil,
+		),
+		netIfSentDropDesc: prometheus.NewDesc(
+			"system_network_interface_transmit_dropped_total",
+			"Cumulative transmit drops per interface",
+			[]string{"device"}, nil,
+		),
+
 		logger: logger,
 	}
 }
@@ -189,6 +240,16 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.netAggSentErrsDesc
 	ch <- c.netAggRecvDropDesc
 	ch <- c.netAggSentDropDesc
+
+	// Network per‑interface
+	ch <- c.netIfRecvBytesDesc
+	ch <- c.netIfSentBytesDesc
+	ch <- c.netIfRecvPktsDesc
+	ch <- c.netIfSentPktsDesc
+	ch <- c.netIfRecvErrsDesc
+	ch <- c.netIfSentErrsDesc
+	ch <- c.netIfRecvDropDesc
+	ch <- c.netIfSentDropDesc
 }
 
 func (c *System) Collect(ch chan<- prometheus.Metric) {
@@ -199,6 +260,7 @@ func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectDisk(ch)
 	c.collectUptime(ch)
 	c.collectNetworkAggregated(ch)
+	c.collectNetworkInterfaces(ch)
 }
 
 // === Helpers ===========================================
@@ -308,4 +370,24 @@ func (c *System) collectNetworkAggregated(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.netAggSentErrsDesc, prometheus.CounterValue, float64(a.Errout))
 	ch <- prometheus.MustNewConstMetric(c.netAggRecvDropDesc, prometheus.CounterValue, float64(a.Dropin))
 	ch <- prometheus.MustNewConstMetric(c.netAggSentDropDesc, prometheus.CounterValue, float64(a.Dropout))
+}
+
+// collectNetworkInterfaces exposes per‑interface counters (e.g., eth0, tun0, wg0).
+func (c *System) collectNetworkInterfaces(ch chan<- prometheus.Metric) {
+	ifaces, err := net.IOCounters(true) // per NIC
+	if err != nil {
+		c.logger.Printf("error collecting per-interface network stats: %v", err)
+		return
+	}
+	for _, iface := range ifaces {
+		dev := []string{iface.Name}
+		ch <- prometheus.MustNewConstMetric(c.netIfRecvBytesDesc, prometheus.CounterValue, float64(iface.BytesRecv), dev...)
+		ch <- prometheus.MustNewConstMetric(c.netIfSentBytesDesc, prometheus.CounterValue, float64(iface.BytesSent), dev...)
+		ch <- prometheus.MustNewConstMetric(c.netIfRecvPktsDesc, prometheus.CounterValue, float64(iface.PacketsRecv), dev...)
+		ch <- prometheus.MustNewConstMetric(c.netIfSentPktsDesc, prometheus.CounterValue, float64(iface.PacketsSent), dev...)
+		ch <- prometheus.MustNewConstMetric(c.netIfRecvErrsDesc, prometheus.CounterValue, float64(iface.Errin), dev...)
+		ch <- prometheus.MustNewConstMetric(c.netIfSentErrsDesc, prometheus.CounterValue, float64(iface.Errout), dev...)
+		ch <- prometheus.MustNewConstMetric(c.netIfRecvDropDesc, prometheus.CounterValue, float64(iface.Dropin), dev...)
+		ch <- prometheus.MustNewConstMetric(c.netIfSentDropDesc, prometheus.CounterValue, float64(iface.Dropout), dev...)
+	}
 }
