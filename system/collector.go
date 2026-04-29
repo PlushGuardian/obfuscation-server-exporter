@@ -56,6 +56,9 @@ type System struct {
 	netIfRecvDropDesc  *prometheus.Desc
 	netIfSentDropDesc  *prometheus.Desc
 
+	// Protocol counters (TCP/UDP stats)
+	netProtoDesc *prometheus.Desc
+
 	// CPU state for delta calculation
 	lastCPUTimes *cpu.TimesStat
 	mu           sync.Mutex
@@ -207,10 +210,17 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			[]string{"device"}, nil,
 		),
 
+		netProtoDesc: prometheus.NewDesc(
+			"system_network_protocol_total",
+			"Cumulative protocol statistic (e.g. TCP segments, UDP datagrams, errors)",
+			[]string{"protocol", "stat"}, nil,
+		),
+
 		logger: logger,
 	}
 }
 
+// Describe sends all metric descriptors to the channel.
 func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	// Memory & swap
 	ch <- c.totalMemoryDesc
@@ -250,8 +260,12 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.netIfSentErrsDesc
 	ch <- c.netIfRecvDropDesc
 	ch <- c.netIfSentDropDesc
+
+	// Network protocol counters (TCP/UDP stats)
+	ch <- c.netProtoDesc
 }
 
+// Collect gathers all metrics and sends them to the channel.
 func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectMemory(ch)
 	c.collectSwap(ch)
@@ -261,6 +275,7 @@ func (c *System) Collect(ch chan<- prometheus.Metric) {
 	c.collectUptime(ch)
 	c.collectNetworkAggregated(ch)
 	c.collectNetworkInterfaces(ch)
+	c.collectProtocolStats(ch)
 }
 
 // === Helpers ===========================================
@@ -389,5 +404,25 @@ func (c *System) collectNetworkInterfaces(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.netIfSentErrsDesc, prometheus.CounterValue, float64(iface.Errout), dev...)
 		ch <- prometheus.MustNewConstMetric(c.netIfRecvDropDesc, prometheus.CounterValue, float64(iface.Dropin), dev...)
 		ch <- prometheus.MustNewConstMetric(c.netIfSentDropDesc, prometheus.CounterValue, float64(iface.Dropout), dev...)
+	}
+}
+
+// collectProtocolStats emits TCP/UDP protocol counters (segments, opens, errors, etc.).
+func (c *System) collectProtocolStats(ch chan<- prometheus.Metric) {
+	protos, err := net.ProtoCounters([]string{"tcp", "udp"})
+	if err != nil {
+		c.logger.Printf("error collecting protocol stats: %v", err)
+		return
+	}
+	for _, proto := range protos {
+		for statName, val := range proto.Stats {
+			ch <- prometheus.MustNewConstMetric(
+				c.netProtoDesc,
+				prometheus.CounterValue,
+				float64(val),
+				proto.Protocol,
+				statName,
+			)
+		}
 	}
 }
