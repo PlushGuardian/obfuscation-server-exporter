@@ -21,7 +21,7 @@
         },
         "writerOpts": {
           "transform": "(commit) => { if (commit.body) commit.body = commit.body.replace(/\\* /g, '  - '); return commit; }",
-          "mainTemplate": "{{> header}}\n\n{{#each commitGroups}}\n{{#each commits}}\n* {{header}}\n{{#if body}}\n  {{body}}\n{{/if}}\n{{/each}}\n{{/each}}\n\n"
+          "mainTemplate": "{{> header}}\n\n{{#each commitGroups}}\n{{#if title}}## {{title}}\n\n{{/if}}{{#each commits}}\n* {{header}}\n{{#if body}}\n  {{body}}\n{{/if}}\n{{/each}}\n{{/each}}\n"
         }
       }
     ],
