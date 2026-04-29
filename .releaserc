@@ -2,7 +2,29 @@
   "branches": ["main"],
   "plugins": [
     "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat",     "section": "◈ Features" },
+            { "type": "fix",      "section": "⚒ Bug Fixes" },
+            { "type": "perf",     "section": "⏵ Performance" },
+            { "type": "docs",     "section": "✍ Documentation" },
+            { "type": "refactor", "section": "↻ Refactoring" },
+            { "type": "test",     "section": "⚑ Tests" },
+            { "type": "build",    "section": "⚙ Build" },
+            { "type": "ci",       "section": "⚡ CI" },
+            { "type": "chore",    "section": "☑ Chores", "hidden": true }
+          ]
+        },
+        "writerOpts": {
+          "transform": "(commit) => { if (commit.body) commit.body = commit.body.replace(/\\* /g, '  - '); return commit; }",
+          "mainTemplate": "{{> header}}\n\n{{#each commitGroups}}\n{{#each commits}}\n* {{header}}\n{{#if body}}\n  {{body}}\n{{/if}}\n{{/each}}\n{{/each}}\n\n"
+        }
+      }
+    ],
     "@semantic-release/changelog",
     [
       "@semantic-release/git",
