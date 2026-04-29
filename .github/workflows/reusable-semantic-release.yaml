@@ -58,6 +58,9 @@ jobs:
           else
             npx semantic-release 2>&1
           fi
+          exit_code=$?
+          set -e
+          echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
 
       # ── Parse output ────────────────────────────────
       - name: Extract new version tag
