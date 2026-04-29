@@ -44,7 +44,7 @@ jobs:
       - name: Mark workspace as Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      # ── Run semantic‑release (dry‑run or real) ──────
+      # ── Run semantic‑release  ──────────────────────
       - name: Run semantic-release
         id: run_release
         env:
@@ -54,14 +54,12 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             GITHUB_REF=${{ github.head_ref }}
             npx semantic-release --no-ci --dry-run --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator --branches ${{ github.head_ref }} > output.txt
+            set -e
+            echo "$output" > semrel-output.txt
             output=$(cat output.txt)
           else
-            output=$(npx semantic-release 2>&1)
+            npx semantic-release 2>&1
           fi
-          exit_code=$?
-          set -e
-          echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
-          echo "$output" > semrel-output.txt
 
       # ── Parse output ────────────────────────────────
       - name: Extract new version tag
@@ -96,7 +94,6 @@ jobs:
 
       - name: Debug all outputs
         run: |
-          
           echo "dry_run: ${{ inputs.dry_run }}"
           echo "new_version: ${{ steps.get_version.outputs.new_version }}"
           echo "release_published: ${{ steps.get_release_status.outputs.release_published }}"
