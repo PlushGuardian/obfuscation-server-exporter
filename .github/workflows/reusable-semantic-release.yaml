@@ -52,16 +52,17 @@ jobs:
         run: |
           set +e
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            GITHUB_REF=${{ github.head_ref }}
             npx semantic-release --no-ci --dry-run \
               --plugins @semantic-release/commit-analyzer,@semantic-release/release-notes-generator \
-              --branches ${{ github.head_ref }} 2>&1 | tee semrel-output.txt
+              --branches ${{ github.head_ref }} > semrel-output.txt 2>&1
           else
-            npx semantic-release 2>&1 | tee semrel-output.txt
+            npx semantic-release > semrel-output.txt 2>&1
           fi
-          exit_code=${PIPESTATUS[0]}
+          exit_code=$?
           set -e
+          cat semrel-output.txt         # show the output in the logs
           echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
+        shell: sh
 
       # ── Parse output ────────────────────────────────
       - name: Extract new version tag
