@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 )
 
@@ -31,6 +33,12 @@ type ThreeXUIConfig struct {
 	Timeout            int    `mapstructure:"timeout"` // seconds
 }
 
-func (c ThreeXUIConfig) PanelURL() string {
-	return fmt.Sprintf("http://%s:%s/%s", "localhost", c.PanelPort, strings.Trim(c.PanelPath, "/"))
+func (c *ThreeXUIConfig) PanelURL() (string, error) {
+	host := "localhost" // no other hosts used by design
+	u := &url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, fmt.Sprint(c.PanelPort)),
+	}
+
+	return u.JoinPath(c.PanelPath).String(), nil
 }
