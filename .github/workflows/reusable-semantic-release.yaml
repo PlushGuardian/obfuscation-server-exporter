@@ -86,7 +86,7 @@ jobs:
             echo "EOF" >> $GITHUB_OUTPUT
             echo "Release notes: $notes"
 
-          elif grep -qE "no commits that would trigger a release|Found no relevant changes" semrel-output.txt; then
+          elif grep -qE "no commits that would trigger a release|no relevant changes|no release" semrel-output.txt; then
             echo "new_version=" >> $GITHUB_OUTPUT
             echo "release_published=false" >> $GITHUB_OUTPUT
             echo "No release generated (commit history does not trigger a version bump)."
