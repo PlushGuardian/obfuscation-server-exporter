@@ -8,8 +8,9 @@ import (
 type Config struct {
 	OBFSExporter OBFSExporterConfig `mapstructure:"obfsexporter"`
 	//nolint:unused
-	System   SystemConfig   `mapstructure:"system"`
-	ThreeXUI ThreeXUIConfig `mapstructure:"threexui"`
+	System     SystemConfig     `mapstructure:"system"`
+	ThreeXUI   ThreeXUIConfig   `mapstructure:"threexui"`
+	MTProxyMax MTProxyMaxConfig `mapstructure:"mtproxymax"`
 }
 
 type OBFSExporterConfig struct {
@@ -26,11 +27,16 @@ type ThreeXUIConfig struct {
 	PanelPath          string `mapstructure:"panel-path"`
 	Username           string `mapstructure:"username"`
 	Password           string `mapstructure:"password"`
-	InsecureSkipVerify bool   `mapstructure:"insecure_skip-verify"`
+	InsecureSkipVerify bool   `mapstructure:"insecureskip-verify"`
 	ClientsBytesRows   int    `mapstructure:"clients-bytes-rows"`
 	Timeout            int    `mapstructure:"timeout"` // seconds
 }
 
 func (c ThreeXUIConfig) PanelURL() string {
 	return fmt.Sprintf("http://%s:%s/%s", "localhost", c.PanelPort, strings.Trim(c.PanelPath, "/"))
+}
+
+type MTProxyMaxConfig struct {
+	MetricsPort string `mapstructure:"panel-port"`
+	PanelPath   string `mapstructure:"panel-path"`
 }
