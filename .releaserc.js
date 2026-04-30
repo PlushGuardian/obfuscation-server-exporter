@@ -13,7 +13,7 @@ module.exports = {
           const typeMapping = {
             feat: '◈ Features',
             fix: '⚒ Fixes',
-            perf: '⏵ Performance',
+            perf: '⧖ Performance',
             docs: '✍ Documentation',
             refactor: '↻ Refactoring',
             test: '⚑ Tests',
