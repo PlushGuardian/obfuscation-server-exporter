@@ -24,13 +24,13 @@ type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
-	PanelPort          int           `mapstructure:"panel-port"`
-	PanelPath          string        `mapstructure:"panel-path"`
-	Username           string        `mapstructure:"username"`
-	Password           string        `mapstructure:"password"`
-	InsecureSkipVerify bool          `mapstructure:"insecure-skip-verify"`
-	ClientsBytesRows   int           `mapstructure:"clients-bytes-rows"`
-	Timeout            time.Duration `mapstructure:"timeout"`
+	PanelPort          int           `mapstructure:"xui-panel-port"`
+	PanelPath          string        `mapstructure:"xui-panel-path"`
+	Username           string        `mapstructure:"xui-username"`
+	Password           string        `mapstructure:"xui-password"`
+	InsecureSkipVerify bool          `mapstructure:"xui-insecure-skip-verify"`
+	ClientsBytesRows   int           `mapstructure:"xui-clients-bytes-rows"`
+	Timeout            time.Duration `mapstructure:"xui-timeout"`
 }
 
 func (c *ThreeXUIConfig) PanelURL() (string, error) {

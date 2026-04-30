@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -31,7 +32,7 @@ func main() {
 	pflag.String("config-file", "", "Path to YAML configuration file")
 	pflag.String("metrics-ip", "", "IP to listen on")
 	pflag.String("metrics-port", "", "Port to listen on")
-	pflag.Int("update-interval", 0, "Scrape interval in seconds")
+	pflag.String("scrape-timeout", "", "Scrape timeout for the metrics port")
 
 	pflag.Int("xui-panel-port", 2053, "3X‑UI panel port")
 	pflag.String("xui-panel-path", "", "3X‑UI panel path")
@@ -48,7 +49,6 @@ func main() {
 	}
 
 	// ---------- Environment variables ----------
-	// VIper automatically binds env vars: e.g. METRICS_IP -> metrics-ip
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
@@ -90,7 +90,8 @@ func main() {
 	})
 	http.Handle("/metrics", handler)
 
-	addr := cfg.OBFSExporter.Address + ":" + cfg.OBFSExporter.Port
+	addr := net.JoinHostPort("localhost", cfg.OBFSExporter.Port)
+
 	obfsExporterLogger.Printf("metrics server starting on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	obfsExporterLogger.Fatal(http.ListenAndServe(addr, nil))
 }
