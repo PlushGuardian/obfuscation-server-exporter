@@ -2,7 +2,6 @@ package system
 
 import (
 	"log"
-	"sync"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,10 +23,10 @@ type System struct {
 	swapUsedDesc    *prometheus.Desc
 
 	// CPU & load average
-	cpuUsageDesc *prometheus.Desc
-	load1Desc    *prometheus.Desc
-	load5Desc    *prometheus.Desc
-	load15Desc   *prometheus.Desc
+	cpuSecondsDesc *prometheus.Desc
+	load1Desc      *prometheus.Desc
+	load5Desc      *prometheus.Desc
+	load15Desc     *prometheus.Desc
 
 	// Disk
 	diskTotalDesc *prometheus.Desc
@@ -59,10 +58,6 @@ type System struct {
 	// Protocol counters (TCP/UDP stats)
 	netProtoDesc *prometheus.Desc
 
-	// CPU state for delta calculation
-	lastCPUTimes *cpu.TimesStat
-	mu           sync.Mutex
-
 	logger *log.Logger
 }
 
@@ -90,10 +85,11 @@ func NewCollector(cfg config.SystemConfig, logger *log.Logger) *System {
 			nil, nil,
 		),
 
-		cpuUsageDesc: prometheus.NewDesc(
-			"system_cpu_usage_percent",
-			"Current overall CPU usage as a percentage (0-100)",
-			nil, nil,
+		cpuSecondsDesc: prometheus.NewDesc(
+			"system_cpu_seconds_total",
+			"Total seconds spent in each CPU mode.",
+			[]string{"mode"},
+			nil,
 		),
 		load1Desc: prometheus.NewDesc(
 			"system_load1",
@@ -229,7 +225,7 @@ func (c *System) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.swapUsedDesc
 
 	// CPU & load average
-	ch <- c.cpuUsageDesc
+	ch <- c.cpuSecondsDesc
 	ch <- c.load1Desc
 	ch <- c.load5Desc
 	ch <- c.load15Desc
@@ -311,21 +307,14 @@ func (c *System) collectCPU(ch chan<- prometheus.Metric) {
 	}
 	curr := times[0]
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.lastCPUTimes != nil {
-		totalDelta := (curr.User + curr.System + curr.Idle + curr.Nice + curr.Iowait +
-			curr.Irq + curr.Softirq + curr.Steal + curr.Guest + curr.GuestNice) -
-			(c.lastCPUTimes.User + c.lastCPUTimes.System + c.lastCPUTimes.Idle + c.lastCPUTimes.Nice +
-				c.lastCPUTimes.Iowait + c.lastCPUTimes.Irq + c.lastCPUTimes.Softirq + c.lastCPUTimes.Steal +
-				c.lastCPUTimes.Guest + c.lastCPUTimes.GuestNice)
-		idleDelta := (curr.Idle + curr.Iowait) - (c.lastCPUTimes.Idle + c.lastCPUTimes.Iowait)
-		if totalDelta > 0 {
-			usage := (totalDelta - idleDelta) / totalDelta * 100.0
-			ch <- prometheus.MustNewConstMetric(c.cpuUsageDesc, prometheus.GaugeValue, usage)
-		}
-	}
-	c.lastCPUTimes = &curr
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.User, "user")
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.System, "system")
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.Idle, "idle")
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.Nice, "nice")
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.Iowait, "iowait")
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.Irq, "irq")
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.Softirq, "softirq")
+	ch <- prometheus.MustNewConstMetric(c.cpuSecondsDesc, prometheus.CounterValue, curr.Steal, "steal")
 }
 
 func (c *System) collectLoad(ch chan<- prometheus.Metric) {
