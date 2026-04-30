@@ -55,11 +55,11 @@ jobs:
             GITHUB_REF=${{ github.head_ref }}
             npx semantic-release --no-ci --dry-run \
               --branches ${{ github.head_ref }} > semrel-output.txt
-              cat semrel-output.txt
           else
             npx semantic-release > semrel-output.txt
           fi
           exit_code=$?
+          cat semrel-output.txt
           set -e
           echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
         shell: sh
