@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -31,8 +32,8 @@ func main() {
 	// ---------- CLI flags (pflag) ----------
 	pflag.String("config-file", "", "Path to YAML configuration file")
 	pflag.String("metrics-ip", "", "IP to listen on")
-	pflag.String("metrics-port", "", "Port to listen on")
-	pflag.String("scrape-timeout", "", "Scrape timeout for the metrics port")
+	pflag.Int("metrics-port", 9100, "Port to listen on")
+	pflag.Int("scrape-timeout", 30, "Scrape timeout for the metrics port")
 
 	pflag.Int("xui-panel-port", 2053, "3X‑UI panel port")
 	pflag.String("xui-panel-path", "", "3X‑UI panel path")
@@ -90,7 +91,7 @@ func main() {
 	})
 	http.Handle("/metrics", handler)
 
-	addr := net.JoinHostPort("localhost", cfg.OBFSExporter.Port)
+	addr := net.JoinHostPort("localhost", fmt.Sprint(cfg.OBFSExporter.Port))
 
 	obfsExporterLogger.Printf("metrics server starting on %s", addr)
 	obfsExporterLogger.Fatal(http.ListenAndServe(addr, nil))
