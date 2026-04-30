@@ -18,7 +18,7 @@ module.exports = {
             refactor: '↻ Refactoring',
             test: '⚑ Tests',
             build: '⚙ Build',
-            ci: '⌁ CI',
+            ci: '⊶ CI',
             chore: '☑ Chores'
           };
 
