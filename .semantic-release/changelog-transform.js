@@ -13,7 +13,11 @@ module.exports = function (commit, context) {
     chore:    '☑ Chores',
   };
 
-  commit.typeLabel = typeLabelMap[commit.type] || commit.type;
+  if (!Object.keys(typeLabelMap).includes(commit.type)) {
+    return null;
+  }
+
+  commit.typeLabel = typeLabelMap[commit.type];
 
   if (commit.body) {
     commit.descriptionLines = commit.body
@@ -21,11 +25,6 @@ module.exports = function (commit, context) {
       .filter(line => line.trim() !== '');
   } else {
     commit.descriptionLines = [];
-  }
-
-  const allowedTypes = Object.keys(typeLabelMap);
-  if (!allowedTypes.includes(commit.type)) {
-    return null;
   }
 
   return commit;
