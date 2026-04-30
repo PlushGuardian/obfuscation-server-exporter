@@ -1,13 +1,17 @@
 module.exports = {
-  // Add your existing branches here
   branches: ['main'],
 
   plugins: [
     '@semantic-release/commit-analyzer',
     ['@semantic-release/release-notes-generator', {
       writerOpts: {
+        commitGroupsSort: (a, b) => {
+          const order = ['◈ Features', '⚒ Fixes', '⧖ Performance', '✍ Documentation', '↻ Refactoring', '⚑ Tests', '⚙ Build', '⇉ CI', '☑ Chores'];
+          const idxA = order.indexOf(a.title);
+          const idxB = order.indexOf(b.title);
+          return idxA - idxB;
+        },
         transform: (originalCommit, context) => {
-          // Create a copy so we don't try to mutate an immutable object
           const commit = { ...originalCommit };
 
           const typeMapping = {
