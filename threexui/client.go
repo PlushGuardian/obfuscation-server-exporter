@@ -25,9 +25,6 @@ type threeXUIClient struct {
 }
 
 func newClient(cfg config.ThreeXUIConfig, logger *log.Logger) *threeXUIClient {
-	if cfg.Timeout == 0 {
-		cfg.Timeout = 15
-	}
 	return &threeXUIClient{
 		config: cfg,
 		logger: logger,
@@ -40,7 +37,7 @@ func newClient(cfg config.ThreeXUIConfig, logger *log.Logger) *threeXUIClient {
 				MaxIdleConnsPerHost: 5,
 				IdleConnTimeout:     90 * time.Second,
 			},
-			Timeout: time.Duration(cfg.Timeout) * time.Second,
+			Timeout: cfg.Timeout,
 		},
 	}
 }

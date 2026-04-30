@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"time"
 )
 
 type Config struct {
@@ -23,13 +24,13 @@ type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
-	PanelPort          int    `mapstructure:"panel-port"`
-	PanelPath          string `mapstructure:"panel-path"`
-	Username           string `mapstructure:"username"`
-	Password           string `mapstructure:"password"`
-	InsecureSkipVerify bool   `mapstructure:"insecure-skip-verify"`
-	ClientsBytesRows   int    `mapstructure:"clients-bytes-rows"`
-	Timeout            int    `mapstructure:"timeout"` // seconds
+	PanelPort          int           `mapstructure:"panel-port"`
+	PanelPath          string        `mapstructure:"panel-path"`
+	Username           string        `mapstructure:"username"`
+	Password           string        `mapstructure:"password"`
+	InsecureSkipVerify bool          `mapstructure:"insecure-skip-verify"`
+	ClientsBytesRows   int           `mapstructure:"clients-bytes-rows"`
+	Timeout            time.Duration `mapstructure:"timeout"`
 }
 
 func (c *ThreeXUIConfig) PanelURL() (string, error) {
