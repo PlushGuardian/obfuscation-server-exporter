@@ -22,7 +22,7 @@ type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
-	PanelPort          string `mapstructure:"panel-port"`
+	PanelPort          int    `mapstructure:"panel-port"`
 	PanelPath          string `mapstructure:"panel-path"`
 	Username           string `mapstructure:"username"`
 	Password           string `mapstructure:"password"`

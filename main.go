@@ -34,7 +34,7 @@ func main() {
 	pflag.String("metrics-port", "", "Port to listen on")
 	pflag.Int("update-interval", 0, "Scrape interval in seconds")
 	pflag.Int("clients-bytes-rows", 0, "Top N rows for client bytes")
-	pflag.String("panel-port", "", "3X‑UI panel port")
+	pflag.Int("panel-port", 2053, "3X‑UI panel port")
 	pflag.String("panel-path", "", "3X‑UI panel path")
 	pflag.String("panel-base-url", "", "3X‑UI base URL")
 	pflag.String("panel-username", "", "3X‑UI username")
