@@ -27,5 +27,11 @@ module.exports = function (commit, context) {
     commit.descriptionLines = [];
   }
 
+  if (commit.hash) {
+    commit.shortHash = commit.hash.substring(0, 7);
+  } else {
+    commit.shortHash = 'unknown';
+  }
+
   return commit;
 };
