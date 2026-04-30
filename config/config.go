@@ -15,9 +15,9 @@ type Config struct {
 }
 
 type OBFSExporterConfig struct {
-	Address       string `mapstructure:"address"`
-	Port          string `mapstructure:"port"`
-	ScrapeTimeout int    `mapstructure:"scrape-timeout"` // seconds
+	Address       string        `mapstructure:"address"`
+	Port          string        `mapstructure:"port"`
+	ScrapeTimeout time.Duration `mapstructure:"scrape-timeout"`
 }
 
 type SystemConfig struct {

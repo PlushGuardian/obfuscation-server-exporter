@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/PlushGuardian/obfuscation-server-exporter/system"
@@ -33,12 +32,14 @@ func main() {
 	pflag.String("metrics-ip", "", "IP to listen on")
 	pflag.String("metrics-port", "", "Port to listen on")
 	pflag.Int("update-interval", 0, "Scrape interval in seconds")
-	pflag.Int("clients-bytes-rows", 0, "Top N rows for client bytes")
-	pflag.Int("panel-port", 2053, "3X‑UI panel port")
-	pflag.String("panel-base-url", "", "3X‑UI base URL")
-	pflag.String("panel-username", "", "3X‑UI username")
-	pflag.String("panel-password", "", "3X‑UI password")
-	pflag.Bool("insecure-skip-verify", false, "Skip TLS verification")
+
+	pflag.Int("xui-panel-port", 2053, "3X‑UI panel port")
+	pflag.String("xui-panel-path", "", "3X‑UI panel path")
+	pflag.String("xui-panel-username", "", "3X‑UI username")
+	pflag.String("xui-panel-password", "", "3X‑UI password")
+	pflag.Bool("xui-insecure-skip-verify", false, "Skip TLS verification")
+	pflag.Int("xui-clients-bytes-rows", 0, "Top N rows for client bytes")
+	pflag.Int("xui-timeout", 15, "Request timeout for the 3x-ui panel")
 	pflag.Parse()
 
 	// ---------- Bind pflags to Viper ----------
@@ -58,13 +59,6 @@ func main() {
 			obfsExporterLogger.Fatalf("failed to read config file: %v", err)
 		}
 	}
-
-	// ---------- Set defaults ----------
-	viper.SetDefault("obfsexporter.address", "localhost")
-	viper.SetDefault("obfsexporter.port", "9100")
-	viper.SetDefault("obfsexporter.scrape_timeout", 30)
-	viper.SetDefault("threexui.timeout", 15)
-	viper.SetDefault("threexui.clients_bytes_rows", 0)
 
 	// ---------- Unmarshal into typed config ----------
 	var cfg config.Config
@@ -92,7 +86,7 @@ func main() {
 
 	// ---------- HTTP handler ----------
 	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
-		Timeout: time.Duration(cfg.OBFSExporter.ScrapeTimeout) * time.Second,
+		Timeout: cfg.OBFSExporter.ScrapeTimeout,
 	})
 	http.Handle("/metrics", handler)
 
