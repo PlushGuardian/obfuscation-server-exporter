@@ -31,9 +31,9 @@ jobs:
     container:
       image: ${{ inputs.image }}
     outputs:
-      new_version: ${{ steps.get_version.outputs.new_version }}
-      release_published: ${{ steps.get_release_status.outputs.release_published }}
-      release_notes: ${{ steps.get_release_notes.outputs.release_notes }}
+      new_version: ${{ steps.extract_results.outputs.new_version }}
+      release_published: ${{ steps.extract_results.outputs.release_published }}
+      release_notes: ${{ steps.extract_results.outputs.release_notes }}
     steps:
       - name: Checkout code (full history)
         uses: actions/checkout@v6
@@ -64,38 +64,35 @@ jobs:
           echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
         shell: sh
 
+
       # ── Parse output ────────────────────────────────
-      - name: Extract new version tag
-        id: get_version
-        run: |
-          if [ "${{ inputs.dry_run }}" = "false" ]; then
-            git fetch --tags
-            new_version=$(git describe --tags --abbrev=0)
-          else
-            new_version=$(sed -n 's/.*Release note for version \([^[:space:]]*\).*/\1/p' semrel-output.txt)
-          fi
-          echo "new_version: $new_version"
-          echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
-      - name: Extract release published
-        id: get_release_status
+      - name: Extract Release Results
+        id: extract_results
         run: |
-          if [ "${{ steps.run_release.outputs.exit_code }}" -eq 0 ]; then
-            release_published=true
-          else
-            release_published=false
-          fi
-          echo "release_published: $release_published"
-          echo "release_published=$release_published" >> $GITHUB_OUTPUT
+          VERSION_LINE=$(grep "The next release version is" semrel-output.txt || true)
 
-      - name: Extract release notes
-        if: inputs.dry_run == true
-        id: get_release_notes
-        run: |
-          output=$(cat semrel-output.txt)
-          notes=$(awk '/Release note for version/{flag=1; next} flag' semrel-output.txt)
-          echo "release_notes: $notes"
-          echo "$notes" > release-notes.md
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          cat release-notes.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          if [ -n "$VERSION_LINE" ]; then
+            NEW_VERSION=$(echo "$VERSION_LINE" | awk '{print $NF}')
+
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "release_published=true" >> $GITHUB_OUTPUT
+            echo "Detected Release: $NEW_VERSION"
+
+            notes=$(awk '/Release note for version/{flag=1; next} flag' semrel-output.txt)
+            echo "$notes" > release-notes.md
+            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+            cat release-notes.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "Release notes: $notes"
+
+          elif grep -qE "no commits that would trigger a release|Found no relevant changes" semrel-output.txt; then
+            echo "new_version=" >> $GITHUB_OUTPUT
+            echo "release_published=false" >> $GITHUB_OUTPUT
+            echo "No release generated (commit history does not trigger a version bump)."
+
+          # 3. If neither, something went wrong (e.g., auth failure, crash)
+          else
+            echo "ERROR: Could not find release status in semantic-release output."
+            exit 1
+          fi
