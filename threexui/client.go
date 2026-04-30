@@ -25,9 +25,6 @@ type threeXUIClient struct {
 }
 
 func newClient(cfg config.ThreeXUIConfig, logger *log.Logger) *threeXUIClient {
-	if cfg.Timeout == 0 {
-		cfg.Timeout = 15
-	}
 	return &threeXUIClient{
 		config: cfg,
 		logger: logger,
@@ -40,7 +37,7 @@ func newClient(cfg config.ThreeXUIConfig, logger *log.Logger) *threeXUIClient {
 				MaxIdleConnsPerHost: 5,
 				IdleConnTimeout:     90 * time.Second,
 			},
-			Timeout: time.Duration(cfg.Timeout) * time.Second,
+			Timeout: cfg.Timeout,
 		},
 	}
 }
@@ -69,9 +66,17 @@ func (c *threeXUIClient) getAuthToken() (*http.Cookie, error) {
 		"username": {c.config.Username},
 		"password": {c.config.Password},
 	}
+
+	u, err := c.config.PanelURL()
+	if err != nil {
+		c.logger.Fatalf("failed to build 3x-ui panel URL: %v", err)
+		return nil, err
+	}
+
 	req, err := http.NewRequest(http.MethodPost,
-		c.config.PanelURL()+"/login",
+		u+"/login",
 		strings.NewReader(data.Encode()))
+
 	if err != nil {
 		c.logger.Printf("3x-ui: create login request failed: %v", err)
 		return nil, err
@@ -116,7 +121,13 @@ func (c *threeXUIClient) getAuthToken() (*http.Cookie, error) {
 }
 
 func (c *threeXUIClient) do(method, path string, cookie *http.Cookie) ([]byte, error) {
-	req, err := http.NewRequest(method, c.config.PanelURL()+path, nil)
+	u, err := c.config.PanelURL()
+	if err != nil {
+		c.logger.Fatalf("failed to build 3x-ui panel URL: %v", err)
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, u+path, nil)
 	if err != nil {
 		c.logger.Printf("3x-ui: create request %s %s failed: %v", method, path, err)
 		return nil, err
