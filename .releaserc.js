@@ -6,7 +6,10 @@ module.exports = {
     '@semantic-release/commit-analyzer',
     ['@semantic-release/release-notes-generator', {
       writerOpts: {
-        transform: (commit, context) => {
+        transform: (originalCommit, context) => {
+          // Create a copy so we don't try to mutate an immutable object
+          const commit = { ...originalCommit };
+
           const typeMapping = {
             feat: '◈ Features',
             fix: '⚒ Fixes',
