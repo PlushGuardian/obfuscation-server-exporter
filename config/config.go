@@ -39,6 +39,5 @@ func (c *ThreeXUIConfig) PanelURL() (string, error) {
 		Scheme: "http",
 		Host:   net.JoinHostPort(host, fmt.Sprint(c.PanelPort)),
 	}
-
 	return u.JoinPath(c.PanelPath).String(), nil
 }
