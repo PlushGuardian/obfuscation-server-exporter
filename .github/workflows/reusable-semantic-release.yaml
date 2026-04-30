@@ -57,7 +57,7 @@ jobs:
               --branches ${{ github.head_ref }} > semrel-output.txt
               cat semrel-output.txt
           else
-            npx semantic-release
+            npx semantic-release > semrel-output.txt
           fi
           exit_code=$?
           set -e
