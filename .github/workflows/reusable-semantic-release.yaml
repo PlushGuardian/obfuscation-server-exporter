@@ -10,7 +10,7 @@ on:
       image:
         description: 'Docker image containing semantic-release'
         type: string
-        default: 'docker.io/plushguardian/semantic-release-for-ci:1.0.1'
+        default: 'docker.io/plushguardian/semantic-release-for-ci:1.0.2'
     secrets:
       gh_token:
         required: true
