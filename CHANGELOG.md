@@ -1,3 +1,16 @@
+## [2.3.1](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.3.0...v2.3.1) (2026-04-30)
+
+
+### ⚒ Fixes
+
+* improvements for obfs-exporter and 3x-ui configs (#38) ([80ec83a](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/80ec83a0f7c4824b4aad360ce30e7994746085bc))
+	* use `Int` instead of `String` for port values
+	* use `time.Duration` instead of `Int` for time
+	* replace insecure_skip-verify with insecure-skip-verify
+	* add prefix `xui-` for all viper flags related to 3x-ui
+	* use url package for any address related code instead of string addition
+	* remove unused viper flags
+
 # [2.3.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.2.1...v2.3.0) (2026-04-30)
 
 
