@@ -126,6 +126,18 @@ func (c *MTPRoxyMax) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
+func drainAndClose(resp *http.Response, logger *log.Logger) {
+	if resp == nil || resp.Body == nil {
+		return
+	}
+	_, _ = io.Copy(io.Discard, resp.Body)
+	if err := resp.Body.Close(); err != nil {
+		if logger != nil {
+			logger.Printf("error closing response body: %v", err)
+		}
+	}
+}
+
 // fetchMetrics performs an HTTP GET against the configured URL and parses the
 // response as Prometheus text format into metric families.
 func (c *MTPRoxyMax) fetchMetrics() (map[string]*dto.MetricFamily, error) {
@@ -134,7 +146,7 @@ func (c *MTPRoxyMax) fetchMetrics() (map[string]*dto.MetricFamily, error) {
 	if err != nil {
 		return nil, fmt.Errorf("client http get: %w", err)
 	}
-	defer resp.Body.Close()
+	defer drainAndClose(resp, c.logger)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
