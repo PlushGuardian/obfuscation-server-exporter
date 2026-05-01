@@ -66,11 +66,6 @@ func main() {
 		obfsExporterLogger.Fatalf("failed to unmarshal config: %v", err)
 	}
 
-	// ---------- Validation (optional) ---------- # TODO remove
-	if cfg.ThreeXUI.PanelPath == "" {
-		obfsExporterLogger.Fatal("threexui.panel_path is required (set via YAML, --panel-path, or PANEL_PATH)")
-	}
-
 	// ---------- Build collectors from config ----------
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(threexui.NewCollector(config.ThreeXUIConfig{
