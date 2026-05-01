@@ -33,7 +33,7 @@ type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
-	PanelPort          int32         `mapstructure:"xui-panel-port"`
+	PanelPort          int           `mapstructure:"xui-panel-port"`
 	PanelPath          string        `mapstructure:"xui-panel-path"`
 	Username           string        `mapstructure:"xui-username"`
 	Password           string        `mapstructure:"xui-password"`

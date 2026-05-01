@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/PlushGuardian/obfuscation-server-exporter/system"
