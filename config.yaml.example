@@ -1,11 +1,10 @@
-threexui:
-  panel-port: 2053
-  panel-path: ""
-  username: ""
-  password: ""
-  insecure-skip-verify: false
-  clients-bytes-rows: 0
-  timeout: 120
+xui-panel-port: 2053
+xui-panel-path: ""
+xui-username: ""
+xui-password: ""
+xui-insecure-skip-verify: false
+xui-clients-bytes-rows: 0
+xui-timeout: 120
 
 obfse-scrape-timeout: 30
 obfse-metrics-port: "9100"

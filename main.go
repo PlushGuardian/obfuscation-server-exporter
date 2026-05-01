@@ -49,7 +49,6 @@ func main() {
 	}
 
 	// ---------- Environment variables ----------
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
 	// ---------- Config file (YAML) ----------
