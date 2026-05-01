@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/PlushGuardian/obfuscation-server-exporter/system"
@@ -31,9 +28,10 @@ func main() {
 
 	// ---------- CLI flags (pflag) ----------
 	pflag.String("config-file", "", "Path to YAML configuration file")
-	pflag.String("metrics-ip", "", "IP to listen on")
-	pflag.Int("metrics-port", 9100, "Port to listen on")
-	pflag.Int("scrape-timeout", 30, "Scrape timeout for the metrics port")
+
+	pflag.Int("metrics-port", 9100, "Port for the obfuscation-server-exporter to listen on")
+	pflag.String("metrics-path", "/metrics", "Path the obfuscation-server-exporter listens on")
+	pflag.Int("scrape-timeout", 30, "Scrape timeout for the metrics port of the obfuscation-server-exporter")
 
 	pflag.Int("xui-panel-port", 2053, "3X‑UI panel port")
 	pflag.String("xui-panel-path", "", "3X‑UI panel path")
@@ -50,7 +48,6 @@ func main() {
 	}
 
 	// ---------- Environment variables ----------
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
 	// ---------- Config file (YAML) ----------
@@ -65,11 +62,6 @@ func main() {
 	var cfg config.Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		obfsExporterLogger.Fatalf("failed to unmarshal config: %v", err)
-	}
-
-	// ---------- Validation (optional) ----------
-	if cfg.ThreeXUI.PanelPath == "" {
-		obfsExporterLogger.Fatal("threexui.panel_path is required (set via YAML, --panel-path, or PANEL_PATH)")
 	}
 
 	// ---------- Build collectors from config ----------
@@ -89,9 +81,9 @@ func main() {
 	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
 		Timeout: cfg.OBFSExporter.ScrapeTimeout,
 	})
-	http.Handle("/metrics", handler)
+	http.Handle(cfg.OBFSExporter.MetricsPath, handler)
 
-	addr := net.JoinHostPort("localhost", fmt.Sprint(cfg.OBFSExporter.Port))
+	addr, _ := cfg.OBFSExporter.Addr()
 
 	obfsExporterLogger.Printf("metrics server starting on %s", addr)
 	obfsExporterLogger.Fatal(http.ListenAndServe(addr, nil))

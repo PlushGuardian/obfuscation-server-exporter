@@ -1,3 +1,16 @@
+# [2.4.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.3.1...v2.4.0) (2026-05-01)
+
+
+### ◈ Features
+
+* flatten config (#40) ([d7d2a09](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/d7d2a099149d8e40fcd08b5a8a1e91e83bfe98ba))
+	* flatten config file
+	* add prefix `obfse-` to 3X-UI parameters
+	* update OBFSExporterConfig variable names to the ones actually used by the exporter
+	* add OBFSExporterConfig.Addr() function to automatically construct exporter address
+	* remove 3X-UI path validation from main.go
+	* clean up packages
+
 ## [2.3.1](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.3.0...v2.3.1) (2026-04-30)
 
 

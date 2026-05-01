@@ -1,13 +1,12 @@
-threexui:
-  panel-port: 2053
-  panel-path: ""
-  username: ""
-  password: ""
-  insecure-skip-verify: false
-  clients-bytes-rows: 0
-  timeout: 120
+# obfuscation-server-exporter settings
+scrape-timeout: 30
+metrics-port: "9100"
+metrics-path: "/metrics"
 
-obfsexporter:
-  scrape-timeout: 30
-  address: localhost
-  port: "9100"
+xui-panel-port: 2053
+xui-panel-path: ""
+xui-username: ""
+xui-password: ""
+xui-insecure-skip-verify: false
+xui-clients-bytes-rows: 0
+xui-timeout: 120

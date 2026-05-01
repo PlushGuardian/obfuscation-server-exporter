@@ -139,7 +139,6 @@ func (c *ThreeXUI) Collect(ch chan<- prometheus.Metric) {
 							strconv.Itoa(cl.ID), cl.Email)
 					}
 				} else {
-					// Top N by upload
 					sortedUp := make([]struct {
 						ID    int
 						Email string
