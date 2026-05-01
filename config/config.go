@@ -16,7 +16,7 @@ type Config struct {
 
 type OBFSExporterConfig struct {
 	Address       string        `mapstructure:"address"`
-	Port          int           `mapstructure:"port"`
+	Port          int32         `mapstructure:"port"`
 	ScrapeTimeout time.Duration `mapstructure:"scrape-timeout"`
 }
 
@@ -24,12 +24,12 @@ type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
-	PanelPort          int           `mapstructure:"xui-panel-port"`
+	PanelPort          int32         `mapstructure:"xui-panel-port"`
 	PanelPath          string        `mapstructure:"xui-panel-path"`
 	Username           string        `mapstructure:"xui-username"`
 	Password           string        `mapstructure:"xui-password"`
 	InsecureSkipVerify bool          `mapstructure:"xui-insecure-skip-verify"`
-	ClientsBytesRows   int           `mapstructure:"xui-clients-bytes-rows"`
+	ClientsBytesRows   int32         `mapstructure:"xui-clients-bytes-rows"`
 	Timeout            time.Duration `mapstructure:"xui-timeout"`
 }
 
