@@ -1,7 +1,6 @@
 package mtproxymax
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,13 +11,11 @@ import (
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 )
 
 type MTPRoxyMax struct {
-	url   string
 	descs []*prometheus.Desc
 	mtx   sync.Mutex
 
@@ -26,8 +23,8 @@ type MTPRoxyMax struct {
 	logger *log.Logger
 }
 
-// newCollector creates a collector that reads metrics from the given URL.
-func newCollector(cfg config.MTProxyMaxConfig, logger *log.Logger) *MTPRoxyMax {
+// NewCollector creates a collector that reads metrics from the given URL.
+func NewCollector(cfg config.MTProxyMaxConfig, logger *log.Logger) *MTPRoxyMax {
 	return &MTPRoxyMax{
 		cfg:    cfg,
 		logger: logger,

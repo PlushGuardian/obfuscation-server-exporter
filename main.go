@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
+	"github.com/PlushGuardian/obfuscation-server-exporter/mtproxymax"
 	"github.com/PlushGuardian/obfuscation-server-exporter/system"
 	"github.com/PlushGuardian/obfuscation-server-exporter/threexui"
 
@@ -25,6 +26,7 @@ func main() {
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
 	systemLogger := log.New(file, "[system] ", log.LstdFlags)
 	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
+	mtproxyMaxLogger := log.New(file, "[mtproxymax] ", log.LstdFlags)
 
 	// ---------- CLI flags (pflag) ----------
 	pflag.String("config-file", "", "Path to YAML configuration file")
@@ -40,6 +42,9 @@ func main() {
 	pflag.Bool("xui-insecure-skip-verify", false, "Skip TLS verification")
 	pflag.Int("xui-clients-bytes-rows", 0, "Top N rows for client bytes")
 	pflag.Int("xui-timeout", 15, "Request timeout for the 3x-ui panel")
+
+	pflag.Int("mtproxymax-metrics-port", 9090, "3X‑UI panel port")
+	pflag.String("mtproxymax-metrics-path", "/metrics", "MTProxyMax metrics path")
 	pflag.Parse()
 
 	// ---------- Bind pflags to Viper ----------
@@ -66,6 +71,7 @@ func main() {
 
 	// ---------- Build collectors from config ----------
 	reg := prometheus.NewRegistry()
+	reg.MustRegister(system.NewCollector(config.SystemConfig{}, systemLogger))
 	reg.MustRegister(threexui.NewCollector(config.ThreeXUIConfig{
 		PanelPort:          cfg.ThreeXUI.PanelPort,
 		PanelPath:          cfg.ThreeXUI.PanelPath,
@@ -75,7 +81,10 @@ func main() {
 		ClientsBytesRows:   cfg.ThreeXUI.ClientsBytesRows,
 		Timeout:            cfg.ThreeXUI.Timeout,
 	}, threeXUILogger))
-	reg.MustRegister(system.NewCollector(config.SystemConfig{}, systemLogger))
+	reg.MustRegister(mtproxymax.NewCollector(config.MTProxyMaxConfig{
+		MetricsPort: cfg.MTProxyMax.MetricsPort,
+		MetricsPath: cfg.MTProxyMax.MetricsPath,
+	}, mtproxyMaxLogger))
 
 	// ---------- HTTP handler ----------
 	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
