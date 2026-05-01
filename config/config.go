@@ -10,8 +10,9 @@ import (
 type Config struct {
 	OBFSExporter OBFSExporterConfig `mapstructure:"obfsexporter"`
 	//nolint:unused
-	System   SystemConfig   `mapstructure:"system"`
-	ThreeXUI ThreeXUIConfig `mapstructure:"threexui"`
+	System     SystemConfig     `mapstructure:"system"`
+	ThreeXUI   ThreeXUIConfig   `mapstructure:"threexui"`
+	MTProxyMax MTProxyMaxConfig `mapstructure:"mtproxymax"`
 }
 
 type OBFSExporterConfig struct {
@@ -49,4 +50,18 @@ func (c *ThreeXUIConfig) PanelURL() (string, error) {
 		Host:   net.JoinHostPort(host, fmt.Sprint(c.PanelPort)),
 	}
 	return u.JoinPath(c.PanelPath).String(), nil
+}
+
+type MTProxyMaxConfig struct {
+	MetricsPort int    `mapstructure:"mtpm-metrics-port"`
+	MetricsPath string `mapstructure:"mtpm-metrics-path"`
+}
+
+func (c *MTProxyMaxConfig) MetricsURL() string {
+	host := "localhost" // no other hosts used by design
+	u := &url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, fmt.Sprint(c.MetricsPort)),
+	}
+	return u.JoinPath(c.MetricsPath).String()
 }

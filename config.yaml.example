@@ -10,3 +10,6 @@ xui-password: ""
 xui-insecure-skip-verify: false
 xui-clients-bytes-rows: 0
 xui-timeout: 120
+
+mtpm-metrics-port: 9090
+mtpm-metrics-path: "/metrics"
