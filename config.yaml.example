@@ -7,7 +7,6 @@ threexui:
   clients-bytes-rows: 0
   timeout: 120
 
-obfsexporter:
-  scrape-timeout: 30
-  address: localhost
-  port: "9100"
+obfse-scrape-timeout: 30
+obfse-metrics-port: "9100"
+obfse-metrics-path: "/metrics"

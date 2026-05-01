@@ -15,9 +15,18 @@ type Config struct {
 }
 
 type OBFSExporterConfig struct {
-	Address       string        `mapstructure:"address"`
-	Port          int32         `mapstructure:"port"`
-	ScrapeTimeout time.Duration `mapstructure:"scrape-timeout"`
+	MetricsPort   int           `mapstructure:"obfse-metrics-port"`
+	MetricsPath   string        `mapstructure:"obfse-metrics-path"`
+	ScrapeTimeout time.Duration `mapstructure:"obfse-scrape-timeout"`
+}
+
+func (c *OBFSExporterConfig) Addr() (string, error) {
+	host := "localhost" // no other hosts used by design
+	u := &url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, fmt.Sprint(c.MetricsPort)),
+	}
+	return u.String(), nil
 }
 
 type SystemConfig struct {
@@ -29,7 +38,7 @@ type ThreeXUIConfig struct {
 	Username           string        `mapstructure:"xui-username"`
 	Password           string        `mapstructure:"xui-password"`
 	InsecureSkipVerify bool          `mapstructure:"xui-insecure-skip-verify"`
-	ClientsBytesRows   int32         `mapstructure:"xui-clients-bytes-rows"`
+	ClientsBytesRows   int           `mapstructure:"xui-clients-bytes-rows"`
 	Timeout            time.Duration `mapstructure:"xui-timeout"`
 }
 
