@@ -29,9 +29,9 @@ func main() {
 	// ---------- CLI flags (pflag) ----------
 	pflag.String("config-file", "", "Path to YAML configuration file")
 
-	pflag.Int("obfse-metrics-port", 9100, "Port for the obfuscation-server-exporter to listen on")
-	pflag.String("obfse-metrics-path", "/metrics", "Path the obfuscation-server-exporter listens on")
-	pflag.Int("obfse-scrape-timeout", 30, "Scrape timeout for the metrics port of the obfuscation-server-exporter")
+	pflag.Int("metrics-port", 9100, "Port for the obfuscation-server-exporter to listen on")
+	pflag.String("metrics-path", "/metrics", "Path the obfuscation-server-exporter listens on")
+	pflag.Int("scrape-timeout", 30, "Scrape timeout for the metrics port of the obfuscation-server-exporter")
 
 	pflag.Int("xui-panel-port", 2053, "3X‑UI panel port")
 	pflag.String("xui-panel-path", "", "3X‑UI panel path")
