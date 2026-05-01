@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
-	"strings"
+	"net"
+	"net/url"
+	"time"
 )
 
 type Config struct {
@@ -14,26 +16,31 @@ type Config struct {
 }
 
 type OBFSExporterConfig struct {
-	Address       string `mapstructure:"address"`
-	Port          string `mapstructure:"port"`
-	ScrapeTimeout int    `mapstructure:"scrape-timeout"` // seconds
+	Address       string        `mapstructure:"address"`
+	Port          int           `mapstructure:"port"`
+	ScrapeTimeout time.Duration `mapstructure:"scrape-timeout"`
 }
 
 type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
-	PanelPort          string `mapstructure:"panel-port"`
-	PanelPath          string `mapstructure:"panel-path"`
-	Username           string `mapstructure:"username"`
-	Password           string `mapstructure:"password"`
-	InsecureSkipVerify bool   `mapstructure:"insecureskip-verify"`
-	ClientsBytesRows   int    `mapstructure:"clients-bytes-rows"`
-	Timeout            int    `mapstructure:"timeout"` // seconds
+	PanelPort          int           `mapstructure:"xui-panel-port"`
+	PanelPath          string        `mapstructure:"xui-panel-path"`
+	Username           string        `mapstructure:"xui-username"`
+	Password           string        `mapstructure:"xui-password"`
+	InsecureSkipVerify bool          `mapstructure:"xui-insecure-skip-verify"`
+	ClientsBytesRows   int           `mapstructure:"xui-clients-bytes-rows"`
+	Timeout            time.Duration `mapstructure:"xui-timeout"`
 }
 
-func (c ThreeXUIConfig) PanelURL() string {
-	return fmt.Sprintf("http://%s:%s/%s", "localhost", c.PanelPort, strings.Trim(c.PanelPath, "/"))
+func (c *ThreeXUIConfig) PanelURL() (string, error) {
+	host := "localhost" // no other hosts used by design
+	u := &url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, fmt.Sprint(c.PanelPort)),
+	}
+	return u.JoinPath(c.PanelPath).String(), nil
 }
 
 type MTProxyMaxConfig struct {
