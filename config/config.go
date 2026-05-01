@@ -53,6 +53,15 @@ func (c *ThreeXUIConfig) PanelURL() (string, error) {
 }
 
 type MTProxyMaxConfig struct {
-	MetricsPort string `mapstructure:"panel-port"`
-	PanelPath   string `mapstructure:"panel-path"`
+	MetricsPort int    `mapstructure:"mtpm-metrics-port"`
+	MetricsPath string `mapstructure:"mtpm-metrics-path"`
+}
+
+func (c *MTProxyMaxConfig) MetricsURL() string {
+	host := "localhost" // no other hosts used by design
+	u := &url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, fmt.Sprint(c.MetricsPort)),
+	}
+	return u.JoinPath(c.MetricsPath).String()
 }

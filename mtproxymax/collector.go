@@ -18,77 +18,72 @@ import (
 )
 
 type MTPRoxyMax struct {
-	url string
+	url   string
 	descs []*prometheus.Desc
 	mtx   sync.Mutex
 
-	cfg    *config.MTProxyMaxConfig
+	cfg    config.MTProxyMaxConfig
 	logger *log.Logger
 }
 
 // newCollector creates a collector that reads metrics from the given URL.
-func newCollector(cfg *config.MTProxyMaxConfig, logger *log.Logger) *MTPRoxyMax {
+func newCollector(cfg config.MTProxyMaxConfig, logger *log.Logger) *MTPRoxyMax {
 	return &MTPRoxyMax{
-		url: "http://localhost<port>/path"
-		cfg: cfg,
+		cfg:    cfg,
 		logger: logger,
 	}
 }
 
 // Describe sends the cached metric descriptions to the provided channel.
 // On first call it fetches the remote endpoint to learn the available metrics.
-func (rc *MTPRoxyMax) Describe(ch chan<- *prometheus.Desc) {
-	rc.mtx.Lock()
-	defer rc.mtx.Unlock()
+func (c *MTPRoxyMax) Describe(ch chan<- *prometheus.Desc) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	if rc.descs == nil {
-		families, err := rc.fetchMetrics()
+	if c.descs == nil {
+		families, err := c.fetchMetrics()
 		if err != nil {
-			log.Printf("Describe: failed to fetch metrics from %s: %v", rc.url, err)
+			c.logger.Printf("Describe: failed to fetch metrics from %s: %v", c.cfg.MetricsURL(), err)
 			return
 		}
-		rc.descs = generateDescs(families)
+		c.descs = generateDescs(families)
 	}
 
-	for _, d := range rc.descs {
+	for _, d := range c.descs {
 		ch <- d
 	}
 }
 
 // Collect fetches the latest metrics from the remote endpoint and sends each
 // Prometheus metric to the channel, converted from the scraped protocol buffer form.
-func (rc *MTPRoxyMax) Collect(ch chan<- prometheus.Metric) {
-	families, err := rc.fetchMetrics()
+func (c *MTPRoxyMax) Collect(ch chan<- prometheus.Metric) {
+	families, err := c.fetchMetrics()
 	if err != nil {
-		log.Printf("Collect: failed to fetch metrics from %s: %v", rc.url, err)
+		c.logger.Printf("Collect: failed to fetch metrics from %s: %v", c.cfg.MetricsURL(), err)
 		return
 	}
 
-	// Update cached descriptions for consistency (they may change over time).
-	rc.mtx.Lock()
-	rc.descs = generateDescs(families)
-	rc.mtx.Unlock()
+	c.mtx.Lock()
+	c.descs = generateDescs(families)
+	c.mtx.Unlock()
 
 	for name, mf := range families {
 		if len(mf.Metric) == 0 {
 			continue
 		}
 
-		// Label keys are taken from the first metric (must be the same for all in the family).
 		labelKeys := make([]string, 0, len(mf.Metric[0].Label))
 		for _, lp := range mf.Metric[0].Label {
 			labelKeys = append(labelKeys, lp.GetName())
 		}
 
-		// Build a description that matches the remote metric.
 		desc := prometheus.NewDesc(
 			name,
 			mf.GetHelp(),
 			labelKeys,
-			nil, // no const labels
+			nil,
 		)
 
-		// Convert each metric in the family.
 		for _, m := range mf.Metric {
 			labelVals := make([]string, len(labelKeys))
 			for i, k := range labelKeys {
@@ -120,12 +115,12 @@ func (rc *MTPRoxyMax) Collect(ch chan<- prometheus.Metric) {
 				}
 				metric, err = prometheus.NewConstSummary(desc, s.GetSampleCount(), s.GetSampleSum(), quantiles, labelVals...)
 			default:
-				log.Printf("Skipping unsupported metric type %v for metric %s", mf.GetType(), name)
+				c.logger.Printf("Skipping unsupported metric type %v for metric %s", mf.GetType(), name)
 				continue
 			}
 
 			if err != nil {
-				log.Printf("Error creating metric %s: %v", name, err)
+				c.logger.Printf("Error creating metric %s: %v", name, err)
 				continue
 			}
 
@@ -136,11 +131,11 @@ func (rc *MTPRoxyMax) Collect(ch chan<- prometheus.Metric) {
 
 // fetchMetrics performs an HTTP GET against the configured URL and parses the
 // response as Prometheus text format into metric families.
-func (rc *MTPRoxyMax) fetchMetrics() (map[string]*dto.MetricFamily, error) {
+func (c *MTPRoxyMax) fetchMetrics() (map[string]*dto.MetricFamily, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(rc.url)
+	resp, err := client.Get(c.cfg.MetricsURL())
 	if err != nil {
-		return nil, fmt.Errorf("http get: %w", err)
+		return nil, fmt.Errorf("client http get: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -185,26 +180,4 @@ func getLabelValue(m *dto.Metric, key string) string {
 		}
 	}
 	return ""
-}
-
-func main() {
-	listenAddr := flag.String("web.listen-address", ":9090", "Address to listen on for HTTP requests.")
-	scrapeURL := flag.String("scrape.url", "http://localhost:9100/metrics", "URL of the Prometheus metrics endpoint to scrape.")
-	flag.Parse()
-
-	// Create a fresh Prometheus registry and add the built-in collectors.
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(
-		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
-		prometheus.NewGoCollector(),
-	)
-
-	// Register our remote scraping collector.
-	reg.MustRegister(newRemoteCollector(*scrapeURL))
-
-	// Expose the merged metrics.
-	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-
-	log.Printf("Starting server on %s, scraping %s", *listenAddr, *scrapeURL)
-	log.Fatal(http.ListenAndServe(*listenAddr, nil))
 }
