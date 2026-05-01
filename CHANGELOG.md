@@ -1,3 +1,12 @@
+# [2.5.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.4.0...v2.5.0) (2026-05-01)
+
+
+### ◈ Features
+
+* add mtproxymax collector (#41) ([3e75c60](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/3e75c6066eb625a78eec5c9ef9e106e3f7a076cb))
+	* add a collector that scrapes an endpoint that already has prometheus metrics
+	* add config options with `mtpme-` to configure the collector
+
 # [2.4.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.3.1...v2.4.0) (2026-05-01)
 
 
