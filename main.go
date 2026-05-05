@@ -1,99 +1,57 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/PlushGuardian/obfuscation-server-exporter/config"
-	"github.com/PlushGuardian/obfuscation-server-exporter/mtproxymax"
-	"github.com/PlushGuardian/obfuscation-server-exporter/system"
-	"github.com/PlushGuardian/obfuscation-server-exporter/threexui"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 func main() {
-	// ---------- Create loggers -------------
-	file, err := os.OpenFile("/var/log/obfuscation-server-exporter.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// ---------- Create loggers ----------------------------
+	file, err := os.OpenFile("./obfs-exporter.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) // TODO replace by var/log/obfs-exporter.log
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer func() { _ = file.Close() }()
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
-	systemLogger := log.New(file, "[system] ", log.LstdFlags)
-	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
-	mtproxyMaxLogger := log.New(file, "[mtproxymax] ", log.LstdFlags)
+	// systemLogger := log.New(file, "[system] ", log.LstdFlags)
+	// threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
+	// mtproxyMaxLogger := log.New(file, "[mtproxymax] ", log.LstdFlags)
 
-	// ---------- CLI flags (pflag) ----------
-	pflag.String("config-file", "", "Path to YAML configuration file")
+	// --- Create main function ------------------------------
 
-	pflag.Int("metrics-port", 9100, "Port for the obfuscation-server-exporter to listen on")
-	pflag.String("metrics-path", "/metrics", "Path the obfuscation-server-exporter listens on")
-	pflag.Int("scrape-timeout", 30, "Scrape timeout for the metrics port of the obfuscation-server-exporter")
-
-	pflag.Int("xui-panel-port", 2053, "3X‑UI panel port")
-	pflag.String("xui-panel-path", "", "3X‑UI panel path")
-	pflag.String("xui-panel-username", "", "3X‑UI username")
-	pflag.String("xui-panel-password", "", "3X‑UI password")
-	pflag.Bool("xui-insecure-skip-verify", false, "Skip TLS verification")
-	pflag.Int("xui-clients-bytes-rows", 0, "Top N rows for client bytes")
-	pflag.Int("xui-timeout", 15, "Request timeout for the 3x-ui panel")
-
-	pflag.Int("mtproxymax-metrics-port", 9090, "3X‑UI panel port")
-	pflag.String("mtproxymax-metrics-path", "/metrics", "MTProxyMax metrics path")
-	pflag.Parse()
-
-	// ---------- Bind pflags to Viper ----------
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		obfsExporterLogger.Fatalf("failed to bind pflags: %v", err)
+	v := viper.New()
+	fs := pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
+	fs.SortFlags = false
+	err = initializeFlags(v, fs)
+	if initializeFlags(v, fs) != nil {
+		obfsExporterLogger.Fatal(err.Error())
 	}
 
-	// ---------- Environment variables ----------
-	viper.AutomaticEnv()
+	fs.Parse(os.Args[1:])
 
-	// ---------- Config file (YAML) ----------
-	if cfgFile := viper.GetString("config-file"); cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-		if err := viper.ReadInConfig(); err != nil {
-			obfsExporterLogger.Fatalf("failed to read config file: %v", err)
-		}
+}
+
+func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
+	fs.String("config-file", "", "Path to YAML configuration file")
+	fs.Int("metrics-port", 9100, "Port for the metrics exporter")
+	fs.Int("threexui-panel-port", 2053, "3X‑UI panel port")
+
+	if err := v.BindPFlags(fs); err != nil {
+		return fmt.Errorf("error when binding flags: %w", err)
 	}
 
-	// ---------- Unmarshal into typed config ----------
-	var cfg config.Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		obfsExporterLogger.Fatalf("failed to unmarshal config: %v", err)
+	rules := map[string]string{
+		"^metrics-port$": "obfs-exporter.metrics-port",
+		"^threexui-":     "threexui.",
 	}
 
-	// ---------- Build collectors from config ----------
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(system.NewCollector(config.SystemConfig{}, systemLogger))
-	reg.MustRegister(threexui.NewCollector(config.ThreeXUIConfig{
-		PanelPort:          cfg.ThreeXUI.PanelPort,
-		PanelPath:          cfg.ThreeXUI.PanelPath,
-		Username:           cfg.ThreeXUI.Username,
-		Password:           cfg.ThreeXUI.Password,
-		InsecureSkipVerify: cfg.ThreeXUI.InsecureSkipVerify,
-		ClientsBytesRows:   cfg.ThreeXUI.ClientsBytesRows,
-		Timeout:            cfg.ThreeXUI.Timeout,
-	}, threeXUILogger))
-	reg.MustRegister(mtproxymax.NewCollector(config.MTProxyMaxConfig{
-		MetricsPort: cfg.MTProxyMax.MetricsPort,
-		MetricsPath: cfg.MTProxyMax.MetricsPath,
-	}, mtproxyMaxLogger))
-
-	// ---------- HTTP handler ----------
-	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
-		Timeout: cfg.OBFSExporter.ScrapeTimeout,
-	})
-	http.Handle(cfg.OBFSExporter.MetricsPath, handler)
-
-	addr, _ := cfg.OBFSExporter.Addr()
-
-	obfsExporterLogger.Printf("metrics server starting on %s", addr)
-	obfsExporterLogger.Fatal(http.ListenAndServe(addr, nil))
+	if err := config.AliasFlags(v, fs, rules); err != nil {
+		return fmt.Errorf("failed to setup flag aliases: %w", err)
+	}
+	return nil
 }
