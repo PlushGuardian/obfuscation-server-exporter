@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v3"
 
 	// "github.com/PlushGuardian/obfuscation-server-exporter/config"
@@ -46,6 +47,8 @@ func main() {
 	v.SetConfigFile(cfgFile)
 	if err := v.ReadInConfig(); err != nil {
 		obfsExporterLogger.Fatalf("failed to read config file: %v", err)
+	} else {
+		setupConfigWatch(v, obfsExporterLogger)
 	}
 	printConfig(v)
 	// ---------- Environment variables ----------
@@ -92,12 +95,9 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 
 	var bindErr error
 
-	// Iterate over all defined flags and explicitly bind them to their config paths
 	fs.VisitAll(func(f *pflag.Flag) {
-		// Default: the config key is exactly the flag name
 		configKey := f.Name
 
-		// Apply mapping rules to translate flag names to nested YAML paths
 		switch {
 		case f.Name == "metrics-port" || f.Name == "metrics-path" || f.Name == "scrape-timeout":
 			configKey = "obfs-exporter." + f.Name
@@ -107,8 +107,6 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 			configKey = strings.Replace(f.Name, "mtproxymax-", "mtproxymax.", 1)
 		}
 
-		// Explicitly bind the pflag to the calculated Viper key.
-		// This guarantees that Flags > Config File precedence is respected for nested keys.
 		if err := v.BindPFlag(configKey, f); err != nil {
 			bindErr = fmt.Errorf("failed to bind flag %s to key %s: %w", f.Name, configKey, err)
 		}
@@ -121,39 +119,15 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	return nil
 }
 
-// func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
-// 	fs.String("config-file", "", "Path to YAML configuration file")
+func setupConfigWatch(v *viper.Viper, logger *log.Logger) {
+	logger.Printf("Watching config file %s\n", v.ConfigFileUsed())
+	v.OnConfigChange(func(e fsnotify.Event) {
+		// This fires whenever the file is saved
+		logger.Printf("Config file changed: %s\n", e.Name)
 
-// 	fs.Int("metrics-port", 9100, "Port for the obfuscation-server-exporter to listen on")
-// 	fs.String("metrics-path", "/metrics", "Path the obfuscation-server-exporter listens on")
-// 	fs.Int("scrape-timeout", 30, "Scrape timeout for the metrics port of the obfuscation-server-exporter")
+		// If you are unmarshaling into a struct, you should re-unmarshal here:
+		// v.Unmarshal(&myConfigStruct)
+	})
 
-// 	fs.Int("threexui-panel-port", 2053, "3X‑UI panel port")
-// 	fs.String("threexui-panel-path", "", "3X‑UI panel path")
-// 	fs.String("threexui-panel-username", "", "3X‑UI username")
-// 	fs.String("threexui-panel-password", "", "3X‑UI password")
-// 	fs.Bool("threexui-insecure-skip-verify", false, "Skip TLS verification")
-// 	fs.Int("threexui-clients-bytes-rows", 0, "Top N rows for client bytes")
-// 	fs.Int("threexui-timeout", 15, "Request timeout for the 3x-ui panel")
-
-// 	fs.Int("mtproxymax-metrics-port", 9090, "3X‑UI panel port")
-// 	fs.String("mtproxymax-metrics-path", "/metrics", "MTProxyMax metrics path")
-
-// 	fs.Parse(os.Args[1:])
-// 	if err := v.BindPFlags(fs); err != nil {
-// 		return fmt.Errorf("error when binding flags: %w", err)
-// 	}
-
-// 	rules := map[string]string{
-// 		"^metrics-port$":   "obfs-exporter.metrics-port",
-// 		"^metrics-path$":   "obfs-exporter.metrics-path",
-// 		"^scrape-timeout$": "obfs-exporter.scrape-timeout",
-// 		"^threexui-":       "threexui.",
-// 		"^mtproxymax-":     "mtproxymax.",
-// 	}
-
-// 	if err := config.AliasFlags(v, fs, rules); err != nil {
-// 		return fmt.Errorf("failed to setup flag aliases: %w", err)
-// 	}
-// 	return nil
-// }
+	v.WatchConfig()
+}
