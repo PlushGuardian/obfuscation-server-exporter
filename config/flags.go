@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -42,4 +44,15 @@ func AliasFlags(v *viper.Viper, fs *pflag.FlagSet, rules map[string]string) erro
 	})
 
 	return bindErr
+}
+
+func SetupConfigWatch(v *viper.Viper, cfg *Config, logger *log.Logger) {
+	logger.Printf("Watching config file %s\n", v.ConfigFileUsed())
+	v.OnConfigChange(func(e fsnotify.Event) {
+		logger.Printf("Config file changed: %s\n", e.Name)
+
+		v.Unmarshal(&cfg)
+	})
+
+	v.WatchConfig()
 }

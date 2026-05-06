@@ -12,7 +12,6 @@ import (
 	"github.com/PlushGuardian/obfuscation-server-exporter/system"
 	"github.com/PlushGuardian/obfuscation-server-exporter/threexui"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
@@ -21,8 +20,8 @@ import (
 )
 
 func main() {
-	logFile := "./obfs-exporter.log" // TODO replace by var/log/obfs-exporter.log
-	cfgFile := "./config.yaml"       // TODO find better naming
+	logFile := "/var/log/obfs-exporter.log"
+	cfgFile := "/etc/obfs-exporter/config.yaml"
 
 	// ---------- Create loggers ----------------------------
 	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -63,7 +62,7 @@ func main() {
 	if err := v.Unmarshal(&cfg); err != nil {
 		obfsExporterLogger.Fatalf("failed to unmarshal config: %v", err)
 	}
-	setupConfigWatch(v, &cfg, obfsExporterLogger)
+	config.SetupConfigWatch(v, &cfg, obfsExporterLogger)
 
 	// ---------- Build collectors from config ----------
 	reg := prometheus.NewRegistry()
@@ -148,15 +147,4 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	}
 
 	return nil
-}
-
-func setupConfigWatch(v *viper.Viper, cfg *config.Config, logger *log.Logger) {
-	logger.Printf("Watching config file %s\n", v.ConfigFileUsed())
-	v.OnConfigChange(func(e fsnotify.Event) {
-		logger.Printf("Config file changed: %s\n", e.Name)
-
-		v.Unmarshal(&cfg)
-	})
-
-	v.WatchConfig()
 }
