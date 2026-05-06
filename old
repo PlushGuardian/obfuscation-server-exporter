@@ -171,8 +171,8 @@ func main() {
 	// 	obfsExporterLogger.Fatalf("failed to bind pflags: %v", err)
 	// }
 
-	// // // ---------- Environment variables ----------
-	// // viper.AutomaticEnv()
+	// // ---------- Environment variables ----------
+	// viper.AutomaticEnv()
 
 	// // ---------- Config file (YAML) ----------
 	// if cfgFile := viper.GetString("config-file"); cfgFile != "" {
