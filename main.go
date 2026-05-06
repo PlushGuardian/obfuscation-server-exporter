@@ -14,8 +14,10 @@ import (
 )
 
 func main() {
+	logFile := "./obfs-exporter.log" // TODO replace by var/log/obfs-exporter.log
+	cfgFile := "./config.yaml"       // TODO find better naming
 	// ---------- Create loggers ----------------------------
-	file, err := os.OpenFile("./obfs-exporter.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) // TODO replace by var/log/obfs-exporter.log
+	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,17 +38,18 @@ func main() {
 		obfsExporterLogger.Fatal(err.Error())
 	}
 
-	// ---------- Environment variables ----------
-	viper.AutomaticEnv()
-
 	// ---------- Config file (YAML) ----------
-	if cfgFile := viper.GetString("config-file"); cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-		if err := viper.ReadInConfig(); err != nil {
-			obfsExporterLogger.Fatalf("failed to read config file: %v", err)
-		}
+
+	if val := v.GetString("config-file"); val != "" {
+		cfgFile = val
+	}
+	v.SetConfigFile(cfgFile)
+	if err := v.ReadInConfig(); err != nil {
+		obfsExporterLogger.Fatalf("failed to read config file: %v", err)
 	}
 	printConfig(v)
+	// ---------- Environment variables ----------
+	viper.AutomaticEnv()
 
 }
 
