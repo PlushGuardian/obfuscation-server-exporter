@@ -50,8 +50,9 @@ func SetupConfigWatch(v *viper.Viper, cfg *Config, logger *log.Logger) {
 	logger.Printf("Watching config file %s\n", v.ConfigFileUsed())
 	v.OnConfigChange(func(e fsnotify.Event) {
 		logger.Printf("Config file changed: %s\n", e.Name)
-
-		v.Unmarshal(&cfg)
+		if err := v.Unmarshal(cfg); err != nil {
+			logger.Fatalf("failed to unmarshal config: %v", err)
+		}
 	})
 
 	v.WatchConfig()

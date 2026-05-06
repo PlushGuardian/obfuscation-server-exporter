@@ -52,7 +52,6 @@ func main() {
 	if err := v.ReadInConfig(); err != nil {
 		obfsExporterLogger.Fatalf("failed to read config file: %v", err)
 	}
-	printConfig(v)
 
 	// ---------- Environment variables ----------
 	viper.AutomaticEnv()
@@ -91,18 +90,6 @@ func main() {
 
 	obfsExporterLogger.Printf("metrics server starting on %s", addr)
 	obfsExporterLogger.Fatal(http.ListenAndServe(addr, nil))
-}
-
-func printConfig(v *viper.Viper) {
-	settings := v.AllSettings()
-	out, err := yaml.Marshal(settings)
-	if err != nil {
-		log.Fatalf("failed to marshal config: %v", err)
-	}
-
-	fmt.Println("--- Current Configuration ---")
-	fmt.Println(string(out))
-	fmt.Println("------------------------------")
 }
 
 func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
