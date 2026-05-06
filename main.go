@@ -3,20 +3,27 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
-	"github.com/fsnotify/fsnotify"
-	"gopkg.in/yaml.v3"
+	"github.com/PlushGuardian/obfuscation-server-exporter/config"
+	"github.com/PlushGuardian/obfuscation-server-exporter/mtproxymax"
+	"github.com/PlushGuardian/obfuscation-server-exporter/system"
+	"github.com/PlushGuardian/obfuscation-server-exporter/threexui"
 
-	// "github.com/PlushGuardian/obfuscation-server-exporter/config"
+	"github.com/fsnotify/fsnotify"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
 	logFile := "./obfs-exporter.log" // TODO replace by var/log/obfs-exporter.log
 	cfgFile := "./config.yaml"       // TODO find better naming
+
 	// ---------- Create loggers ----------------------------
 	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -24,12 +31,11 @@ func main() {
 	}
 	defer func() { _ = file.Close() }()
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
-	// systemLogger := log.New(file, "[system] ", log.LstdFlags)
-	// threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
-	// mtproxyMaxLogger := log.New(file, "[mtproxymax] ", log.LstdFlags)
+	systemLogger := log.New(file, "[system] ", log.LstdFlags)
+	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
+	mtproxyMaxLogger := log.New(file, "[mtproxymax] ", log.LstdFlags)
 
 	// --- Create flags -------------------------------------
-
 	v := viper.New()
 	fs := pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
 	fs.SortFlags = false
@@ -40,20 +46,52 @@ func main() {
 	}
 
 	// ---------- Config file (YAML) ----------
-
 	if val := v.GetString("config-file"); val != "" {
 		cfgFile = val
 	}
 	v.SetConfigFile(cfgFile)
 	if err := v.ReadInConfig(); err != nil {
 		obfsExporterLogger.Fatalf("failed to read config file: %v", err)
-	} else {
-		setupConfigWatch(v, obfsExporterLogger)
 	}
 	printConfig(v)
+
 	// ---------- Environment variables ----------
 	viper.AutomaticEnv()
 
+	// ---------- Unmarshal into typed config ----------
+	var cfg config.Config
+	if err := v.Unmarshal(&cfg); err != nil {
+		obfsExporterLogger.Fatalf("failed to unmarshal config: %v", err)
+	}
+	setupConfigWatch(v, &cfg, obfsExporterLogger)
+
+	// ---------- Build collectors from config ----------
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(system.NewCollector(config.SystemConfig{}, systemLogger))
+	reg.MustRegister(threexui.NewCollector(config.ThreeXUIConfig{
+		PanelPort:          cfg.ThreeXUI.PanelPort,
+		PanelPath:          cfg.ThreeXUI.PanelPath,
+		Username:           cfg.ThreeXUI.Username,
+		Password:           cfg.ThreeXUI.Password,
+		InsecureSkipVerify: cfg.ThreeXUI.InsecureSkipVerify,
+		ClientsBytesRows:   cfg.ThreeXUI.ClientsBytesRows,
+		Timeout:            cfg.ThreeXUI.Timeout,
+	}, threeXUILogger))
+	reg.MustRegister(mtproxymax.NewCollector(config.MTProxyMaxConfig{
+		MetricsPort: cfg.MTProxyMax.MetricsPort,
+		MetricsPath: cfg.MTProxyMax.MetricsPath,
+	}, mtproxyMaxLogger))
+
+	// ---------- HTTP handler ----------
+	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
+		Timeout: cfg.OBFSExporter.ScrapeTimeout,
+	})
+	http.Handle(cfg.OBFSExporter.MetricsPath, handler)
+
+	addr, _ := cfg.OBFSExporter.Addr()
+
+	obfsExporterLogger.Printf("metrics server starting on %s", addr)
+	obfsExporterLogger.Fatal(http.ListenAndServe(addr, nil))
 }
 
 func printConfig(v *viper.Viper) {
@@ -86,13 +124,6 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	fs.Int("mtproxymax-metrics-port", 9090, "3X‑UI panel port")
 	fs.String("mtproxymax-metrics-path", "/metrics", "MTProxyMax metrics path")
 
-	// Parse flags only if they haven't been parsed yet to avoid panics
-	if !fs.Parsed() {
-		if err := fs.Parse(os.Args[1:]); err != nil {
-			return fmt.Errorf("failed to parse flags: %w", err)
-		}
-	}
-
 	var bindErr error
 
 	fs.VisitAll(func(f *pflag.Flag) {
@@ -119,14 +150,12 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	return nil
 }
 
-func setupConfigWatch(v *viper.Viper, logger *log.Logger) {
+func setupConfigWatch(v *viper.Viper, cfg *config.Config, logger *log.Logger) {
 	logger.Printf("Watching config file %s\n", v.ConfigFileUsed())
 	v.OnConfigChange(func(e fsnotify.Event) {
-		// This fires whenever the file is saved
 		logger.Printf("Config file changed: %s\n", e.Name)
 
-		// If you are unmarshaling into a struct, you should re-unmarshal here:
-		// v.Unmarshal(&myConfigStruct)
+		v.Unmarshal(&cfg)
 	})
 
 	v.WatchConfig()

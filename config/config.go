@@ -23,11 +23,8 @@ type OBFSExporterConfig struct {
 
 func (c *OBFSExporterConfig) Addr() (string, error) {
 	host := "localhost" // no other hosts used by design
-	u := &url.URL{
-		Scheme: "http",
-		Host:   net.JoinHostPort(host, fmt.Sprint(c.MetricsPort)),
-	}
-	return u.String(), nil
+
+	return fmt.Sprint(net.JoinHostPort(host, fmt.Sprint(c.MetricsPort))), nil
 }
 
 type SystemConfig struct {
