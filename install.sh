@@ -293,3 +293,52 @@ echo ""
 echo -e "You can view logs with: journalctl -u obfs-exporter.service"
 echo -e "Support the project: \033[1;33mhttps://pay.cloudtips.ru/p/67507843${NC}"
 echo ""
+
+
+# #!/bin/bash
+
+# # --- Helper function for inputs with defaults ---
+# prompt_input() {
+#     local var_name=$1
+#     local prompt_text=$2
+#     local default_val=$3
+
+#     read -p "$prompt_text [$default_val]: " input_val
+#     export "$var_name"="${input_val:-$default_val}"
+# }
+
+# echo "--- obfs-exporter Configuration Setup ---"
+
+# # 1. Global Settings
+# prompt_input "SCRAPE_TIMEOUT" "Scrape timeout (seconds)" "30"
+# prompt_input "METRICS_PORT" "Exporter metrics port" "9100"
+# prompt_input "METRICS_PATH" "Exporter metrics path" "/metrics"
+
+# # 2. 3X-UI Settings
+# echo -e "\n--- 3X-UI Panel Settings ---"
+# prompt_input "THREEXUI_PANEL_PORT" "3X-UI panel port" "2053"
+# prompt_input "THREEXUI_PANEL_PATH" "3X-UI panel path (e.g. /my-path)" ""
+# prompt_input "THREEXUI_PANEL_USERNAME" "3X-UI username" "admin"
+# prompt_input "THREEXUI_PANEL_PASSWORD" "3X-UI password" ""
+# prompt_input "THREEXUI_INSECURE_SKIP_VERIFY" "Skip TLS verification (true/false)" "false"
+# prompt_input "THREEXUI_CLIENTS_BYTES_ROWS" "Top N rows for client bytes" "0"
+# prompt_input "THREEXUI_TIMEOUT" "3X-UI request timeout" "15"
+
+# # 3. MTProxyMax Settings
+# echo -e "\n--- MTProxyMax Settings ---"
+# prompt_input "MTPROXYMAX_METRICS_PORT" "MTProxyMax port" "9090"
+# prompt_input "MTPROXYMAX_METRICS_PATH" "MTProxyMax path" "/metrics"
+
+# # --- Run the Templating ---
+# echo -e "\nGenerating config.yaml..."
+
+# if command -v envsubst >/dev/null 2>&1; then
+#     envsubst < config.yaml.tmpl > config.yaml
+#     echo "Success! Configuration saved to config.yaml"
+# else
+#     echo "Error: 'envsubst' is not installed. (Usually found in gettext package)"
+#     exit 1
+# fi
+
+# # --- Optional: Launch the exporter ---
+# # ./obfs-exporter --config-file=config.yaml

@@ -1,15 +1,18 @@
 # obfuscation-server-exporter settings
-scrape-timeout: 30
-metrics-port: "9100"
-metrics-path: "/metrics"
+obfs-exporter:
+  scrape-timeout: 30
+  metrics-port: 9100
+  metrics-path: "/metrics"
 
-xui-panel-port: 2053
-xui-panel-path: ""
-xui-username: ""
-xui-password: ""
-xui-insecure-skip-verify: false
-xui-clients-bytes-rows: 0
-xui-timeout: 120
+threexui:
+  panel-port: 2053
+  panel-path: ""
+  panel-username: ""
+  panel-password: ""
+  insecure-skip-verify: false
+  clients-bytes-rows: 0
+  timeout: 120
 
-mtpm-metrics-port: 9090
-mtpm-metrics-path: "/metrics"
+mtproxymax:
+  metrics-port: 9090
+  metrics-path: "/metrics"
