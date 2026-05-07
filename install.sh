@@ -175,7 +175,7 @@ fi
 
 # Download the appropriate archive
 TEMP_DIR=$(mktemp -d)
-ARCHIVE_NAME="obfs-exporter-${VERSION}-linux-${ARCH}.tar.gz"
+ARCHIVE_NAME="obfs-exporter-linux-${ARCH}.tar.gz"
 DOWNLOAD_URL="https://github.com/PlushGuardian/obfuscation-server-exporter/releases/download/${VERSION}/${ARCHIVE_NAME}"
 
 step 2 "Downloading binary from: ${DOWNLOAD_URL}"
