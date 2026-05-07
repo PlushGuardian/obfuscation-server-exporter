@@ -30,6 +30,8 @@ case ${ARCH} in
 esac
 
 # Get latest release tag
+
+# TODO add option to specify version
 echo "Fetching latest release information..."
 LATEST_RELEASE=$(curl -s https://api.github.com/repos/hteppl/obfs-exporter/releases/latest)
 if [ $? -ne 0 ] || [ -z "$LATEST_RELEASE" ]; then
@@ -53,11 +55,11 @@ fi
 # Download the appropriate archive
 TEMP_DIR=$(mktemp -d)
 ARCHIVE_NAME="obfs-exporter-${VERSION}-linux-${ARCH}.tar.gz"
-DOWNLOAD_URL="https://github.com/hteppl/obfs-exporter/releases/download/${VERSION}/${ARCHIVE_NAME}"
+DOWNLOAD_URL="https://github.com/PlushGuardian/obfs-exporter/releases/download/${VERSION}/${ARCHIVE_NAME}"
 
 step 2 "Downloading binary from: ${DOWNLOAD_URL}"
 curl -L -o "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
-if [ $? -ne 0 ]; then
+if [ $? -ne 0 ]; then   # make this into a function
     echo "Failed to download binary. Installation aborted."
     rm -rf "${TEMP_DIR}"
     exit 1
@@ -104,7 +106,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Check if config file already exists
-CONFIG_FILE="/etc/obfs-exporter/config.yaml"
+CONFIG_FILE="/etc/obfs-exporter/config.yaml"  # TODO figure out what to do with an existing configuration
 SKIP_CONFIG_SETUP=0
 if [ -f "$CONFIG_FILE" ]; then
     echo "Configuration file already exists at $CONFIG_FILE"
@@ -291,7 +293,6 @@ echo -e "${GREEN}Binary path:       ${NC}/usr/local/bin/obfs-exporter"
 echo -e "${GREEN}Config path:       ${NC}$CONFIG_FILE"
 echo ""
 echo -e "You can view logs with: journalctl -u obfs-exporter.service"
-echo -e "Support the project: \033[1;33mhttps://pay.cloudtips.ru/p/67507843${NC}"
 echo ""
 
 
