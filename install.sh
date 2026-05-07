@@ -150,7 +150,7 @@ esac
 
 # TODO add option to specify version
 echo "Fetching latest release information..."
-LATEST_RELEASE=$(curl -s https://api.github.com/repos/PlushGuardian/obfs-exporter/releases/latest)
+LATEST_RELEASE=$(curl -s https://api.github.com/repos/PlushGuardian/obfuscation-server-exporter/releases/latest)
 if [ $? -ne 0 ] || [ -z "$LATEST_RELEASE" ]; then
     echo "Failed to fetch release information. Installation aborted."
     exit 1
@@ -176,7 +176,7 @@ fi
 # Download the appropriate archive
 TEMP_DIR=$(mktemp -d)
 ARCHIVE_NAME="obfs-exporter-${VERSION}-linux-${ARCH}.tar.gz"
-DOWNLOAD_URL="https://github.com/PlushGuardian/obfs-exporter/releases/download/${VERSION}/${ARCHIVE_NAME}"
+DOWNLOAD_URL="https://github.com/PlushGuardian/obfuscation-server-exporter/releases/download/${VERSION}/${ARCHIVE_NAME}"
 
 step 2 "Downloading binary from: ${DOWNLOAD_URL}"
 curl -L -o "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
@@ -235,7 +235,7 @@ fi
 if [ $SKIP_CONFIG_SETUP -eq 0 ]; then
     # Download example config file
     echo "Downloading config template from GitHub..."
-    curl -s -o "$CONFIG_FILE.tmpl" https://raw.githubusercontent.com/PlushGuardian/obfs-exporter/install/config.yaml.tmpl  # TODO return branch name
+    curl -s -o "$CONFIG_FILE.tmpl" https://raw.githubusercontent.com/PlushGuardian/obfuscation-server-exporter/install/config.yaml.tmpl  # TODO return branch name
     abort_on_error "Failed to download config file template. Installation aborted."
 
     # Interactive configuration
