@@ -150,13 +150,20 @@ esac
 
 # TODO add option to specify version
 echo "Fetching latest release information..."
-LATEST_RELEASE=$(curl -s https://api.github.com/repos/hteppl/obfs-exporter/releases/latest)
+LATEST_RELEASE=$(curl -s https://api.github.com/repos/PlushGuardian/obfs-exporter/releases/latest)
 if [ $? -ne 0 ] || [ -z "$LATEST_RELEASE" ]; then
     echo "Failed to fetch release information. Installation aborted."
     exit 1
 fi
 
-VERSION=$(echo "${LATEST_RELEASE}" | grep -Po '"tag_name": "\K.*?(?=")')
+VERSION=$(echo "$LATEST_RELEASE" | grep -Po '"tag_name": "\K[^"]+')
+if [[ -z "$VERSION" ]]; then
+    echo "Could not extract version from GitHub API response." >&2
+    echo "Raw response: $LATEST_RELEASE" >&2
+    exit 1
+fi
+
+
 echo -e "\n${PURPLE}✨ Starting 3X-UI Exporter $VERSION automated install wizard...\033[0m"
 
 # Create dedicated system user for running the service
