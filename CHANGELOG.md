@@ -1,3 +1,19 @@
+# [2.6.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.5.0...v2.6.0) (2026-05-07)
+
+
+### ◈ Features
+
+* make flags and config file compatible (#42) ([38dc3bd](https://github.com/PlushGuardian/obfuscation-server-exporter/commit/38dc3bdfbd753c23a723ab3031cf62dc07fac49d))
+	* return nested structure for config file
+	* rename config structure for exporter settings to obfs-exporter
+	* add support for nested configs to flags. flags with certain prefixes are aliased as config-compatible ones
+	* remove prefix from flags related to obfs-exporter settings
+	* limit flag parsing to only necessary flags
+	* replace all `-` in environment variables
+	* fix config loading to use default flag values if unable to access config file
+	* fix logging initialization to send an error instead of crashing if unable to access config file
+	* add config watch to the file
+
 # [2.5.0](https://github.com/PlushGuardian/obfuscation-server-exporter/compare/v2.4.0...v2.5.0) (2026-05-01)
 
 
