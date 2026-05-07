@@ -2,10 +2,15 @@ package config
 
 import (
 	"fmt"
+<<<<<<< HEAD
+	"regexp"
+
+=======
 	"log"
 	"regexp"
 
 	"github.com/fsnotify/fsnotify"
+>>>>>>> 272b026b2f6bf64043dc880b114b92a28bdb19e5
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )

@@ -1,0 +1,17 @@
+obfs-exporter:
+  scrape-timeout: ${SCRAPE_TIMEOUT}
+  metrics-port: ${METRICS_PORT}
+  metrics-path: "${METRICS_PATH}"
+
+threexui:
+  panel-port: ${THREEXUI_PANEL_PORT}
+  panel-path: "${THREEXUI_PANEL_PATH}"
+  panel-username: "${THREEXUI_PANEL_USERNAME}"
+  panel-password: "${THREEXUI_PANEL_PASSWORD}"
+  insecure-skip-verify: ${THREEXUI_INSECURE_SKIP_VERIFY}
+  clients-bytes-rows: ${THREEXUI_CLIENTS_BYTES_ROWS}
+  timeout: ${THREEXUI_TIMEOUT}
+
+mtproxymax:
+  metrics-port: ${MTPROXYMAX_METRICS_PORT}
+  metrics-path: "${MTPROXYMAX_METRICS_PATH}"

@@ -12,10 +12,12 @@ import (
 	"github.com/PlushGuardian/obfuscation-server-exporter/system"
 	"github.com/PlushGuardian/obfuscation-server-exporter/threexui"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -54,6 +56,16 @@ func main() {
 	if err := v.ReadInConfig(); err != nil {
 		obfsExporterLogger.Printf("WARNING: failed to read config file %s: %v. Using default configuration.", cfgFile, err)
 	}
+
+	// ---------- Config file (YAML) ----------
+	if val := v.GetString("config-file"); val != "" {
+		cfgFile = val
+	}
+	v.SetConfigFile(cfgFile)
+	if err := v.ReadInConfig(); err != nil {
+		obfsExporterLogger.Fatalf("failed to read config file: %v", err)
+	}
+	printConfig(v)
 
 	// ---------- Environment variables ----------
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
