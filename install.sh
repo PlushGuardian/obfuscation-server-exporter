@@ -77,10 +77,9 @@ prompt_input() {
     local input_val
     while true; do
         if [[ -z "$default_val" ]]; then
-                read -p "${prompt_text} (required): " input_val
-            else
-                read -p "${prompt_text} [${default_val}]: " input_val
-            fi
+            read -p "${prompt_text} (required): " input_val
+        else
+            read -p "${prompt_text} [${default_val}]: " input_val
         fi
 
         if [[ -z "$default_val" && -z "$input_val" ]]; then
