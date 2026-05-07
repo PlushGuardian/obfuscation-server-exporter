@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	OBFSExporter OBFSExporterConfig `mapstructure:"obfsexporter"`
+	OBFSExporter OBFSExporterConfig `mapstructure:"obfs-exporter"`
 	//nolint:unused
 	System     SystemConfig     `mapstructure:"system"`
 	ThreeXUI   ThreeXUIConfig   `mapstructure:"threexui"`
@@ -16,31 +16,28 @@ type Config struct {
 }
 
 type OBFSExporterConfig struct {
-	MetricsPort   int           `mapstructure:"obfse-metrics-port"`
-	MetricsPath   string        `mapstructure:"obfse-metrics-path"`
-	ScrapeTimeout time.Duration `mapstructure:"obfse-scrape-timeout"`
+	MetricsPort   int           `mapstructure:"metrics-port"`
+	MetricsPath   string        `mapstructure:"metrics-path"`
+	ScrapeTimeout time.Duration `mapstructure:"scrape-timeout"`
 }
 
 func (c *OBFSExporterConfig) Addr() (string, error) {
 	host := "localhost" // no other hosts used by design
-	u := &url.URL{
-		Scheme: "http",
-		Host:   net.JoinHostPort(host, fmt.Sprint(c.MetricsPort)),
-	}
-	return u.String(), nil
+
+	return fmt.Sprint(net.JoinHostPort(host, fmt.Sprint(c.MetricsPort))), nil
 }
 
 type SystemConfig struct {
 }
 
 type ThreeXUIConfig struct {
-	PanelPort          int           `mapstructure:"xui-panel-port"`
-	PanelPath          string        `mapstructure:"xui-panel-path"`
-	Username           string        `mapstructure:"xui-username"`
-	Password           string        `mapstructure:"xui-password"`
-	InsecureSkipVerify bool          `mapstructure:"xui-insecure-skip-verify"`
-	ClientsBytesRows   int           `mapstructure:"xui-clients-bytes-rows"`
-	Timeout            time.Duration `mapstructure:"xui-timeout"`
+	PanelPort          int           `mapstructure:"panel-port"`
+	PanelPath          string        `mapstructure:"panel-path"`
+	Username           string        `mapstructure:"username"`
+	Password           string        `mapstructure:"password"`
+	InsecureSkipVerify bool          `mapstructure:"insecure-skip-verify"`
+	ClientsBytesRows   int           `mapstructure:"clients-bytes-rows"`
+	Timeout            time.Duration `mapstructure:"timeout"`
 }
 
 func (c *ThreeXUIConfig) PanelURL() (string, error) {
@@ -53,8 +50,8 @@ func (c *ThreeXUIConfig) PanelURL() (string, error) {
 }
 
 type MTProxyMaxConfig struct {
-	MetricsPort int    `mapstructure:"mtpm-metrics-port"`
-	MetricsPath string `mapstructure:"mtpm-metrics-path"`
+	MetricsPort int    `mapstructure:"metrics-port"`
+	MetricsPath string `mapstructure:"metrics-path"`
 }
 
 func (c *MTProxyMaxConfig) MetricsURL() string {
