@@ -21,15 +21,18 @@ import (
 )
 
 func main() {
-	logFile := "./obfs-exporter.log" // TODO replace by var/log/obfs-exporter.log
-	cfgFile := "./config.yaml"       // TODO find better naming
+	logFile := "/var/log/obfs-exporter.log"
+	cfgFile := "/etc/obfs-exporter/config.yaml"
 
 	// ---------- Create loggers ----------------------------
 	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "WARNING: cannot open log file %q: %v. Logging to stderr instead.\n", logFile, err)
+		file = os.Stderr
 	}
-	defer func() { _ = file.Close() }()
+	if file != nil {
+		defer func() { _ = file.Close() }()
+	}
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
 	systemLogger := log.New(file, "[system] ", log.LstdFlags)
 	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
@@ -51,19 +54,29 @@ func main() {
 	}
 	v.SetConfigFile(cfgFile)
 	if err := v.ReadInConfig(); err != nil {
+		obfsExporterLogger.Printf("WARNING: failed to read config file %s: %v. Using default configuration.", cfgFile, err)
+	}
+
+	// ---------- Config file (YAML) ----------
+	if val := v.GetString("config-file"); val != "" {
+		cfgFile = val
+	}
+	v.SetConfigFile(cfgFile)
+	if err := v.ReadInConfig(); err != nil {
 		obfsExporterLogger.Fatalf("failed to read config file: %v", err)
 	}
 	printConfig(v)
 
 	// ---------- Environment variables ----------
-	viper.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	v.AutomaticEnv()
 
 	// ---------- Unmarshal into typed config ----------
 	var cfg config.Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		obfsExporterLogger.Fatalf("failed to unmarshal config: %v", err)
 	}
-	setupConfigWatch(v, &cfg, obfsExporterLogger)
+	config.SetupConfigWatch(v, &cfg, obfsExporterLogger)
 
 	// ---------- Build collectors from config ----------
 	reg := prometheus.NewRegistry()
@@ -94,18 +107,6 @@ func main() {
 	obfsExporterLogger.Fatal(http.ListenAndServe(addr, nil))
 }
 
-func printConfig(v *viper.Viper) {
-	settings := v.AllSettings()
-	out, err := yaml.Marshal(settings)
-	if err != nil {
-		log.Fatalf("failed to marshal config: %v", err)
-	}
-
-	fmt.Println("--- Current Configuration ---")
-	fmt.Println(string(out))
-	fmt.Println("------------------------------")
-}
-
 func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	fs.String("config-file", "", "Path to YAML configuration file")
 
@@ -115,8 +116,8 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 
 	fs.Int("threexui-panel-port", 2053, "3X‑UI panel port")
 	fs.String("threexui-panel-path", "", "3X‑UI panel path")
-	fs.String("threexui-panel-username", "", "3X‑UI username")
-	fs.String("threexui-panel-password", "", "3X‑UI password")
+	fs.String("threexui-username", "", "3X‑UI username")
+	fs.String("threexui-password", "", "3X‑UI password")
 	fs.Bool("threexui-insecure-skip-verify", false, "Skip TLS verification")
 	fs.Int("threexui-clients-bytes-rows", 0, "Top N rows for client bytes")
 	fs.Int("threexui-timeout", 15, "Request timeout for the 3x-ui panel")
@@ -148,15 +149,4 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	}
 
 	return nil
-}
-
-func setupConfigWatch(v *viper.Viper, cfg *config.Config, logger *log.Logger) {
-	logger.Printf("Watching config file %s\n", v.ConfigFileUsed())
-	v.OnConfigChange(func(e fsnotify.Event) {
-		logger.Printf("Config file changed: %s\n", e.Name)
-
-		v.Unmarshal(&cfg)
-	})
-
-	v.WatchConfig()
 }
