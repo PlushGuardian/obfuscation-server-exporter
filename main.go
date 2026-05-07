@@ -25,9 +25,12 @@ func main() {
 	// ---------- Create loggers ----------------------------
 	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "WARNING: cannot open log file %q: %v. Logging to stderr instead.\n", logFile, err)
+		file = os.Stderr
 	}
-	defer func() { _ = file.Close() }()
+	if file != nil {
+		defer func() { _ = file.Close() }()
+	}
 	obfsExporterLogger := log.New(file, "[obfs-exporter] ", log.LstdFlags)
 	systemLogger := log.New(file, "[system] ", log.LstdFlags)
 	threeXUILogger := log.New(file, "[3x-ui] ", log.LstdFlags)
@@ -49,11 +52,12 @@ func main() {
 	}
 	v.SetConfigFile(cfgFile)
 	if err := v.ReadInConfig(); err != nil {
-		obfsExporterLogger.Fatalf("failed to read config file: %v", err)
+		obfsExporterLogger.Printf("WARNING: failed to read config file %s: %v. Using default configuration.", cfgFile, err)
 	}
 
 	// ---------- Environment variables ----------
-	viper.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	v.AutomaticEnv()
 
 	// ---------- Unmarshal into typed config ----------
 	var cfg config.Config
@@ -100,8 +104,8 @@ func initializeFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 
 	fs.Int("threexui-panel-port", 2053, "3X‑UI panel port")
 	fs.String("threexui-panel-path", "", "3X‑UI panel path")
-	fs.String("threexui-panel-username", "", "3X‑UI username")
-	fs.String("threexui-panel-password", "", "3X‑UI password")
+	fs.String("threexui-username", "", "3X‑UI username")
+	fs.String("threexui-password", "", "3X‑UI password")
 	fs.Bool("threexui-insecure-skip-verify", false, "Skip TLS verification")
 	fs.Int("threexui-clients-bytes-rows", 0, "Top N rows for client bytes")
 	fs.Int("threexui-timeout", 15, "Request timeout for the 3x-ui panel")
