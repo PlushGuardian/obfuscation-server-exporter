@@ -1,0 +1,19 @@
+# obfuscation-server-exporter settings
+
+obfs-exporter:
+  scrape-timeout: 30
+  metrics-port: 9100
+  metrics-path: "/metrics"
+
+threexui:
+  panel-port: 2053
+  panel-path: ""
+  username: ""
+  password: ""
+  insecure-skip-verify: false
+  clients-bytes-rows: 0
+  timeout: 120
+
+mtproxymax:
+  metrics-port: 9090
+  metrics-path: "/metrics"
