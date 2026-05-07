@@ -8,6 +8,124 @@ step() {
   echo -e "\n${GREEN}[$1/8] $2${NC}"
 }
 
+# ------------------------------------------------------------
+# abort_on_error <error_message> [folder_to_remove]
+#
+# Must be called immediately after the command you want to guard.
+# Arguments:
+#   $1 (optional) – Error message to print on failure.
+#   $2 (optional) – Directory to remove (with `rm -rf`) on failure.
+#
+# If the previous command failed (exit ≠ 0), the function:
+#   1. Prints the provided error message to stderr, or a default one, if none was provided.
+#   2. If $2 is given and not empty, deletes that directory.
+#   3. Exits the script with the same non‑zero exit code.
+# ------------------------------------------------------------
+abort_on_error() {
+    local last_exit=$?
+    if [[ $last_exit -ne 0 ]]; then
+        local error_message="${1:-}"
+        if [[ -z $error_message ]]; then
+            error_message="Something went wrong during installation, exiting."
+        fi
+        echo "$error_message" >&2
+        if [[ -n "${2:-}" ]]; then
+            echo "Cleaning up directory: $2" >&2
+            rm -rf "$2"
+        fi
+        exit "$last_exit"
+    fi
+}
+
+# ------------------------------------------------------------------
+# prompt_input <var_name> <prompt_text> <default_val> [validation] [--secret]
+#
+# Prompts the user repeatedly until a valid answer is given.
+#   validation  – optional: "number", "nonempty", "port", "bool", … or a custom function name.
+#   --secret    – optional: hides typed characters (useful for passwords).
+#
+# When --secret is used, the prompt shows "[hidden]" instead of the default.
+# Pressing Enter still accepts the default value (even if hidden).
+# ------------------------------------------------------------------
+prompt_input() {
+    local var_name="$1"
+    local prompt_text="$2"
+    local default_val="$3"
+
+    local validation=""
+    local secret=0
+
+    shift 3
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --secret|--password)
+                secret=1
+                shift
+                ;;
+            *)
+                if [[ -z "$validation" ]]; then
+                    validation="$1"
+                else
+                    echo "prompt_input: unexpected argument '$1'" >&2
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    local input_val
+    while true; do
+        if [[ -z "$default_val" ]]; then
+                read -p "${prompt_text} (required): " input_val
+            else
+                read -p "${prompt_text} [${default_val}]: " input_val
+            fi
+        fi
+
+        if [[ -z "$default_val" && -z "$input_val" ]]; then
+            echo "  This value is required." >&2
+            continue
+        fi
+        input_val="${input_val:-$default_val}"
+
+        # Validation logic
+        case "$validation" in
+            number)
+                if [[ "$input_val" =~ ^[0-9]+$ ]]; then break
+                else echo "  Please enter a positive integer." >&2; fi
+                ;;
+            nonempty)
+                if [[ -n "$input_val" ]]; then break
+                else echo "  This value cannot be empty." >&2; fi
+                ;;
+            port)
+                if [[ "$input_val" =~ ^[0-9]+$ ]] && (( input_val >= 1 && input_val <= 65535 )); then break
+                else echo "  Please enter a valid port (1-65535)." >&2; fi
+                ;;
+            bool|boolean)
+                case "${input_val,,}" in
+                    true|yes|1)   input_val="true";  break ;;
+                    false|no|0)   input_val="false"; break ;;
+                    *)            echo "  Please answer 'true' or 'false'." >&2 ;;
+                esac
+                ;;
+            "") break ;;   # no validation → accept anything
+            *)
+                # Assume it's a custom function name
+                if declare -F "$validation" &>/dev/null && "$validation" "$input_val"; then
+                    break
+                else
+                    echo "  Invalid input. Please try again." >&2
+                fi
+                ;;
+        esac
+    done
+
+    export "$var_name"="$input_val"
+}
+
+
 # Check if script is run as root
 if [ "$(id -u)" -ne 0 ]; then
     echo "Error: This script must be run as root (sudo)."
@@ -46,10 +164,7 @@ echo -e "\n${PURPLE}✨ Starting 3X-UI Exporter $VERSION automated install wizar
 step 1 "Creating obfs-exporter user"
 if ! id -u obfs-exporter > /dev/null 2>&1; then
     useradd -r -s /bin/false obfs-exporter
-    if [ $? -ne 0 ]; then
-        echo "Failed to create user. Installation aborted."
-        exit 1
-    fi
+    abort_on_error "Failed to create user. Installation aborted."
 fi
 
 # Download the appropriate archive
@@ -59,54 +174,39 @@ DOWNLOAD_URL="https://github.com/PlushGuardian/obfs-exporter/releases/download/$
 
 step 2 "Downloading binary from: ${DOWNLOAD_URL}"
 curl -L -o "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
-if [ $? -ne 0 ]; then   # make this into a function
-    echo "Failed to download binary. Installation aborted."
-    rm -rf "${TEMP_DIR}"
-    exit 1
-fi
+abort_on_error "Failed to download binary. Installation aborted." "${TEMP_DIR}"
+
 
 # Extract binary
 step 3 "Extracting binary..."
 tar -xzf "${TEMP_DIR}/${ARCHIVE_NAME}" -C "${TEMP_DIR}"
-if [ $? -ne 0 ]; then
-    echo "Failed to extract binary. Installation aborted."
-    rm -rf "${TEMP_DIR}"
-    exit 1
-fi
+abort_on_error "Failed to extract binary. Installation aborted." "${TEMP_DIR}"
 
 # Force remove old binary if exists
 if [ -f /usr/local/bin/obfs-exporter ]; then
     rm -f /usr/local/bin/obfs-exporter
-    if [ $? -ne 0 ]; then
-        echo "Failed to remove old binary. Installation aborted."
-        rm -rf "${TEMP_DIR}"
-        exit 1
-    fi
+    abort_on_error "Failed to remove old binary. Installation aborted." "${TEMP_DIR}"
 fi
 
 # Install binary to /usr/local/bin
 step 4 "Installing binary to /usr/local/bin..."
 cp "${TEMP_DIR}/obfs-exporter" /usr/local/bin/
-if [ $? -ne 0 ]; then
-    echo "Failed to install binary. Installation aborted."
-    rm -rf "${TEMP_DIR}"
-    exit 1
-fi
+abort_on_error "Failed to install binary. Installation aborted." "${TEMP_DIR}"
+
 
 # Clean up and set permissions
 rm -rf "${TEMP_DIR}"
 chmod 755 /usr/local/bin/obfs-exporter
 
+
+CONFIG_DIR="/etc/obfs-exporter"
 # Create config directory
 step 5 "Creating configuration directory..."
-mkdir -p /etc/obfs-exporter/
-if [ $? -ne 0 ]; then
-    echo "Failed to create config directory. Installation aborted."
-    exit 1
-fi
+mkdir -p ${CONFIG_DIR}
+abort_on_error "Failed to create config directory. Installation aborted."
 
 # Check if config file already exists
-CONFIG_FILE="/etc/obfs-exporter/config.yaml"  # TODO figure out what to do with an existing configuration
+CONFIG_FILE="${CONFIG_DIR}/config.yaml"  # TODO figure out what to do with an existing configuration
 SKIP_CONFIG_SETUP=0
 if [ -f "$CONFIG_FILE" ]; then
     echo "Configuration file already exists at $CONFIG_FILE"
@@ -128,112 +228,44 @@ fi
 
 if [ $SKIP_CONFIG_SETUP -eq 0 ]; then
     # Download example config file
-    echo "Downloading example config from GitHub..."
-    curl -s -o "$CONFIG_FILE" https://raw.githubusercontent.com/hteppl/obfs-exporter/main/config-example.yaml
-    if [ $? -ne 0 ]; then
-        echo "Failed to download config file. Installation aborted."
-        exit 1
-    fi
+    echo "Downloading config template from GitHub..."
+    curl -s -o "$CONFIG_FILE.tmpl" https://raw.githubusercontent.com/PlushGuardian/obfs-exporter/main/config.yaml.tmpl
+    abort_on_error "Failed to download config file template. Installation aborted."
 
     # Interactive configuration
-    echo "Provide your 3X-UI panel details:"
+    echo "General settings:"
+    # obfs-exporter section
+    prompt_input SCRAPE_TIMEOUT                "obfs-exporter scrape-timeout"            "30"        number
+    prompt_input METRICS_PORT                  "obfs-exporter metrics-port"              "9100"      port
+    prompt_input METRICS_PATH                  "obfs-exporter metrics-path"              "/metrics"  nonempty
+    echo
 
-    # Get Panel Port
-    while true; do
-        read -p "Enter panel port (e.g., 2053): " PANEL_PORT
-        if [[ "$PANEL_PORT" =~ ^[0-9]+$ ]] && [ "$PANEL_PORT" -ge 1 ] && [ "$PANEL_PORT" -le 65535 ]; then
-            break
-        else
-            echo "Error: Port must be a number between 1 and 65535."
-        fi
-    done
+    # threexui section
+    echo "3X-UI settings:"
+    prompt_input THREEXUI_PANEL_PORT           "3x-ui panel port"                        "2053"      port
+    prompt_input THREEXUI_PANEL_PATH           "3x-ui panel path"                        ""          nonempty
+    prompt_input THREEXUI_USERNAME             "3x-ui username"                          ""          nonempty
+    prompt_input THREEXUI_PASSWORD             "3x-ui password"                          ""          nonempty --secret
+    prompt_input THREEXUI_INSECURE_SKIP_VERIFY "3x-ui insecure skip verify (true|false)" "false"     boolean
+    prompt_input THREEXUI_CLIENTS_BYTES_ROWS   "3x-ui clients bytes rows (0=all)"        "0"         number
+    prompt_input THREEXUI_TIMEOUT              "3x-ui request timeout (seconds)"         "120"       number
+    echo
 
-    # Get Panel Path
-    while true; do
-        read -p "Enter panel path (e.g., /panel/ or /xui/, but usually /ADKhilALhvlzkjcBLHJXCEp/ or something similar): " PANEL_PATH
-        # Normalise: remove leading and trailing slashes
-        PANEL_PATH=$(echo "$PANEL_PATH" | sed 's:^/*::; s:/*$::')
-        if [ -z "$PANEL_PATH" ]; then
-            echo "Error: Panel path cannot be empty."
-        else
-            break
-        fi
-    done
+    # mtproxymax section
+    echo "MTProxyMax settings:"
+    prompt_input MTPROXYMAX_METRICS_PORT       "MTProxyMax metrics-port"                 "9090"      port
+    prompt_input MTPROXYMAX_METRICS_PATH       "MTProxyMax metrics-path"                 "/metrics"  nonempty
+    echo
 
-    # Build the full base URL
-    PANEL_URL="http://localhost:${PANEL_PORT}/${PANEL_PATH}"
+    echo "Generating config file..."
 
-    # Get credentials
-    while true; do
-        read -p "Enter Panel Username: " PANEL_USERNAME
-        if [ -z "$PANEL_USERNAME" ]; then
-            echo "Error: Panel Username cannot be empty. Please try again."
-        else
-            break
-        fi
-    done
-
-    while true; do
-        read -s -p "Enter Panel Password: " PANEL_PASSWORD
-        echo ""
-        if [ -z "$PANEL_PASSWORD" ]; then
-            echo "Error: Panel Password cannot be empty. Please try again."
-        else
-            break
-        fi
-    done
-
-    # Validate connection to panel
-    echo "Validating connection to panel..."
-    TEMP_RESPONSE=$(mktemp)
-    CURL_EXIT_CODE=0
-    LOGIN_RESULT=$(curl -s -w "%{http_code}" -o "$TEMP_RESPONSE" -X POST "${PANEL_URL}/login" \
-        -H "Content-Type: application/json" \
-        -d "{\"username\":\"${PANEL_USERNAME}\",\"password\":\"${PANEL_PASSWORD}\"}" || { CURL_EXIT_CODE=$?; echo "000"; })
-
-    if [ $CURL_EXIT_CODE -ne 0 ]; then
-        echo "Failed to connect to panel. Network error (curl exit code: $CURL_EXIT_CODE)"
-        echo "Please check if the panel URL is correct and the server is reachable."
-        read -p "Continue anyway? (y/n): " CONTINUE
-        if [ "$CONTINUE" != "y" ] && [ "$CONTINUE" != "Y" ]; then
-            rm -f "$TEMP_RESPONSE"
-            echo "Installation aborted."
-            exit 1
-        fi
-    elif [ "$LOGIN_RESULT" == "200" ] || [ "$LOGIN_RESULT" == "303" ]; then
-        echo "Successfully connected to panel!"
-    elif [ "$LOGIN_RESULT" == "401" ] || [ "$LOGIN_RESULT" == "403" ]; then
-        echo "Authentication failed. Invalid username or password."
-        read -p "Continue anyway? (y/n): " CONTINUE
-        if [ "$CONTINUE" != "y" ] && [ "$CONTINUE" != "Y" ]; then
-            rm -f "$TEMP_RESPONSE"
-            echo "Installation aborted."
-            exit 1
-        fi
+    if command -v envsubst >/dev/null 2>&1; then
+        envsubst < $CONFIG_FILE.tmpl > $CONFIG_FILE
+        echo "Success! Configuration saved to $CONFIG_FILE."
     else
-        echo "Failed to connect to panel. HTTP status: ${LOGIN_RESULT}"
-        echo "Please verify your panel URL and credentials."
-        read -p "Continue anyway? (y/n): " CONTINUE
-        if [ "$CONTINUE" != "y" ] && [ "$CONTINUE" != "Y" ]; then
-            rm -f "$TEMP_RESPONSE"
-            echo "Installation aborted."
-            exit 1
-        fi
+        echo "Error: 'envsubst' is not installed. (Usually found in gettext package)"
+        exit 1
     fi
-    rm -f "$TEMP_RESPONSE"
-
-    # Update the config file with user input
-    echo "Updating configuration file with provided details..."
-    # Escape special characters in variables for sed
-    PANEL_PATH_ESCAPED=$(echo "$PANEL_PATH" | sed 's/[\\/"]/\\&/g')
-    PANEL_USERNAME_ESCAPED=$(echo "$PANEL_USERNAME" | sed 's/[\/&]/\\&/g')
-    PANEL_PASSWORD_ESCAPED=$(echo "$PANEL_PASSWORD" | sed 's/[\/&]/\\&/g')
-
-    sed -i "s|^\s*panel-username:.*|    panel-username: \"${PANEL_USERNAME_ESCAPED}\"|" "$CONFIG_FILE"
-    sed -i "s|^\s*panel-password:.*|    panel-password: \"${PANEL_PASSWORD_ESCAPED}\"|" "$CONFIG_FILE"
-    sed -i "s|^\s*panel-port:.*|    panel-port: ${PANEL_PORT}|" "$CONFIG_FILE"
-    sed -i "s|^\s*panel-path:.*|    panel-path: \"${PANEL_PATH_ESCAPED}\"|" "$CONFIG_FILE"
-
 
 else
     echo "Using existing configuration file without changes."
@@ -257,32 +289,21 @@ chmod 644 /etc/systemd/system/obfs-exporter.service
 # Reload systemd to recognize the new service
 step 7 "Reloading systemd daemon..."
 systemctl daemon-reload
-if [ $? -ne 0 ]; then
-    echo "Failed to reload systemd. Installation aborted."
-    exit 1
-fi
+abort_on_error "Failed to reload systemd. Installation aborted."
 
 # Enable and start (or restart) the service
 step 8 "Enabling and starting obfs-exporter service..."
 if systemctl is-active --quiet obfs-exporter.service; then
     echo "Service is already running. Restarting..."
     systemctl restart obfs-exporter.service
-    if [ $? -ne 0 ]; then
-        echo "Failed to restart service. Installation aborted."
-        exit 1
-    fi
+    abort_on_error "Failed to restart service. Installation aborted."
+
 else
     systemctl enable obfs-exporter.service
-    if [ $? -ne 0 ]; then
-        echo "Failed to enable service. Installation aborted."
-        exit 1
-    fi
+    abort_on_error "Failed to enable service. Installation aborted."
 
     systemctl start obfs-exporter.service
-    if [ $? -ne 0 ]; then
-        echo "Failed to start service. Installation aborted."
-        exit 1
-    fi
+    abort_on_error "Failed to start service. Installation aborted."
 fi
 
 sudo systemctl status obfs-exporter --no-pager
@@ -294,52 +315,3 @@ echo -e "${GREEN}Config path:       ${NC}$CONFIG_FILE"
 echo ""
 echo -e "You can view logs with: journalctl -u obfs-exporter.service"
 echo ""
-
-
-# #!/bin/bash
-
-# # --- Helper function for inputs with defaults ---
-# prompt_input() {
-#     local var_name=$1
-#     local prompt_text=$2
-#     local default_val=$3
-
-#     read -p "$prompt_text [$default_val]: " input_val
-#     export "$var_name"="${input_val:-$default_val}"
-# }
-
-# echo "--- obfs-exporter Configuration Setup ---"
-
-# # 1. Global Settings
-# prompt_input "SCRAPE_TIMEOUT" "Scrape timeout (seconds)" "30"
-# prompt_input "METRICS_PORT" "Exporter metrics port" "9100"
-# prompt_input "METRICS_PATH" "Exporter metrics path" "/metrics"
-
-# # 2. 3X-UI Settings
-# echo -e "\n--- 3X-UI Panel Settings ---"
-# prompt_input "THREEXUI_PANEL_PORT" "3X-UI panel port" "2053"
-# prompt_input "THREEXUI_PANEL_PATH" "3X-UI panel path (e.g. /my-path)" ""
-# prompt_input "THREEXUI_PANEL_USERNAME" "3X-UI username" "admin"
-# prompt_input "THREEXUI_PANEL_PASSWORD" "3X-UI password" ""
-# prompt_input "THREEXUI_INSECURE_SKIP_VERIFY" "Skip TLS verification (true/false)" "false"
-# prompt_input "THREEXUI_CLIENTS_BYTES_ROWS" "Top N rows for client bytes" "0"
-# prompt_input "THREEXUI_TIMEOUT" "3X-UI request timeout" "15"
-
-# # 3. MTProxyMax Settings
-# echo -e "\n--- MTProxyMax Settings ---"
-# prompt_input "MTPROXYMAX_METRICS_PORT" "MTProxyMax port" "9090"
-# prompt_input "MTPROXYMAX_METRICS_PATH" "MTProxyMax path" "/metrics"
-
-# # --- Run the Templating ---
-# echo -e "\nGenerating config.yaml..."
-
-# if command -v envsubst >/dev/null 2>&1; then
-#     envsubst < config.yaml.tmpl > config.yaml
-#     echo "Success! Configuration saved to config.yaml"
-# else
-#     echo "Error: 'envsubst' is not installed. (Usually found in gettext package)"
-#     exit 1
-# fi
-
-# # --- Optional: Launch the exporter ---
-# # ./obfs-exporter --config-file=config.yaml
