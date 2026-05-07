@@ -229,7 +229,7 @@ fi
 if [ $SKIP_CONFIG_SETUP -eq 0 ]; then
     # Download example config file
     echo "Downloading config template from GitHub..."
-    curl -s -o "$CONFIG_FILE.tmpl" https://raw.githubusercontent.com/PlushGuardian/obfs-exporter/main/config.yaml.tmpl
+    curl -s -o "$CONFIG_FILE.tmpl" https://raw.githubusercontent.com/PlushGuardian/obfs-exporter/install/config.yaml.tmpl  # TODO return branch name
     abort_on_error "Failed to download config file template. Installation aborted."
 
     # Interactive configuration
